@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 import styles from './App.module.scss';
 
@@ -16,12 +16,23 @@ type GameState = {
   elements: Element[];
 };
 
+function useForceUpdate() {
+  const incRef = useRef(0);
+  const [, setInc] = useState(incRef.current);
+
+  const callback = useCallback(() => {
+    setInc(++incRef.current);
+  }, []);
+
+  return callback;
+}
+
 export function App() {
-  const [cursor, setCursor] = useState<'move' | undefined>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const sizeRef = useRef({ width: 0, height: 0 });
   const posRef = useRef({ x: 0, y: 0 });
+  const forceUpdate = useForceUpdate();
   const gameStateRef = useRef<GameState>({
     elements: [],
   });
@@ -94,7 +105,7 @@ export function App() {
         if (activeElement.el !== element) {
           activeElement.el = element;
           draw();
-          setCursor('move');
+          forceUpdate();
         }
         return;
       }
@@ -103,7 +114,7 @@ export function App() {
     if (activeElement.el) {
       activeElement.el = undefined;
       draw();
-      setCursor(undefined);
+      forceUpdate();
     }
   }
 
@@ -158,6 +169,14 @@ export function App() {
     assets['pnp'] = img;
     assets['npn'] = img;
   }, []);
+
+  let cursor: 'move' | 'grabbing' | undefined;
+
+  if (activeElement.el) {
+    cursor = 'move';
+  } else if (isDrag) {
+    cursor = 'grabbing';
+  }
 
   return (
     <main className={styles.app}>
