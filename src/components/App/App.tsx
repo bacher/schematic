@@ -8,7 +8,7 @@ type Coords = {
 };
 
 type Element = {
-  type: 'pnp' | 'npn';
+  type: 'pnp' | 'npn' | 'power' | 'ground';
   pos: Coords;
 };
 
@@ -30,22 +30,24 @@ function useForceUpdate() {
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const [isDrag, setDrag] = useState(false);
+  const forceUpdate = useForceUpdate();
+
   const sizeRef = useRef({ width: 0, height: 0 });
   const posRef = useRef({ x: 0, y: 0 });
-  const forceUpdate = useForceUpdate();
-  const gameStateRef = useRef<GameState>({
-    elements: [],
-  });
   const assetsRef = useRef<Record<string, any>>({});
   const mousePosRef = useRef({ x: 0, y: 0 });
   const activeElementRef = useRef<{ el: Element | undefined }>({ el: undefined });
+  const gameStateRef = useRef<GameState>({
+    elements: [],
+  });
+
   const size = sizeRef.current;
   const pos = posRef.current;
   const state = gameStateRef.current;
   const assets = assetsRef.current;
   const mousePos = mousePosRef.current;
   const activeElement = activeElementRef.current;
-  const [isDrag, setDrag] = useState(false);
 
   function draw() {
     const ctx = canvasRef.current!.getContext('2d');
@@ -158,16 +160,32 @@ export function App() {
     draw();
   }
 
+  function clearState() {
+    state.elements = [];
+    pos.x = 0;
+    pos.y = 0;
+    activeElement.el = undefined;
+    draw();
+  }
+
   useEffect(() => {
     updateSize();
 
     window.addEventListener('resize', updateSize);
 
-    const img = new Image();
-    img.src = 'logo192.png';
+    const pnp = new Image();
+    pnp.src = 'assets/pnp.png';
+    const npn = new Image();
+    npn.src = 'assets/npn.png';
+    const ground = new Image();
+    ground.src = 'assets/ground.png';
+    const power = new Image();
+    power.src = 'assets/power.png';
 
-    assets['pnp'] = img;
-    assets['npn'] = img;
+    assets['pnp'] = pnp;
+    assets['npn'] = npn;
+    assets['ground'] = ground;
+    assets['power'] = power;
   }, []);
 
   let cursor: 'move' | 'grabbing' | undefined;
@@ -226,6 +244,22 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
+            addElement('power');
+          }}
+        >
+          DD
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            addElement('ground');
+          }}
+        >
+          GND
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
             addElement('pnp');
           }}
         >
@@ -238,6 +272,14 @@ export function App() {
           }}
         >
           npn
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            clearState();
+          }}
+        >
+          Clear
         </button>
       </div>
       <div className={styles.info}>
