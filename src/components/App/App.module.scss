@@ -1,0 +1,64 @@
+.app {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  top: 0;
+  left: 0;
+  padding: 4px;
+  border-radius: 2px;
+}
+
+.button {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: none;
+  color: #333;
+  background: #dadada;
+  white-space: nowrap;
+  appearance: none;
+}
+
+.canvasWrapper {
+  flex-grow: 1;
+}
+
+.canvas {
+  display: block;
+}
+
+.info {
+  flex-basis: 300px;
+  padding: 16px 20px;
+  border-left: 1px solid #888;
+  background: #ddd;
+}
+
+.table {
+  display: grid;
+  grid-template-columns: repeat(5, 30px);
+}
+
+.tableCell {
+  text-align: center;
+  font-weight: 700;
+
+  &:nth-child(n + 6) {
+    font-weight: 400;
+  }
+
+  &:nth-child(5n) {
+    margin-left: 15px;
+  }
+}
