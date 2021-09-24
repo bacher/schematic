@@ -1,8 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, MouseEvent, useState } from 'react';
 
-import styles from './App.module.scss';
-import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { useRefState } from '../../hooks/useRefState';
+import styles from './App.module.scss';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -17,6 +16,15 @@ type Element = {
   type: 'pnp' | 'npn' | 'power' | 'ground';
   pos: Coords;
 };
+
+type Cursor =
+  | 'move'
+  | 'pointer'
+  | 'drag'
+  | 'grab'
+  | 'grabbing'
+  | 'cross'
+  | undefined;
 
 type Connection = {
   el1: { el: Element; pinIndex: number };
@@ -62,20 +70,27 @@ const elements: Record<Element['type'], ElementDescription> = {
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
-  const [isDrag, setDrag] = useState(false);
-  const forceUpdate = useForceUpdate();
+  const [cursor, setCursor] = useState<Cursor>();
 
   const size = useRefState({ width: 0, height: 0 });
   const pos = useRefState({ x: 0, y: 0 });
   const assets = useRefState<Record<string, any>>({});
   const mousePos = useRefState({ x: 0, y: 0 });
-  const activeElement = useRefState<{
+  const hoverElement = useRefState<{
     target:
       | {
           el: Element;
           activePin: { index: number } | undefined;
         }
       | undefined;
+  }>({
+    target: undefined,
+  });
+  const focusElement = useRefState<{ el: Element | undefined }>({
+    el: undefined,
+  });
+  const movingElement = useRefState<{
+    target: { el: Element } | undefined;
   }>({
     target: undefined,
   });
@@ -88,6 +103,7 @@ export function App() {
     elements: [],
     connections: [],
   });
+  const mouseState = useRefState({ isMouseDown: false, isDrag: false });
 
   // @ts-ignore
   window.state = state;
@@ -123,7 +139,7 @@ export function App() {
     for (const element of state.elements) {
       const { type, pos } = element;
 
-      if (element === activeElement.target?.el) {
+      if (element === hoverElement.target?.el) {
         ctx.strokeStyle = '#ddf';
         ctx.lineWidth = 3;
         ctx.strokeRect(
@@ -147,7 +163,7 @@ export function App() {
 
       let i = 0;
 
-      const activeTarget = activeElement.target;
+      const activeTarget = hoverElement.target;
 
       for (const pin of pins) {
         const isActive =
@@ -203,6 +219,22 @@ export function App() {
     }
 
     ctx.restore();
+
+    let currentCursor: Cursor;
+
+    if (wireElement.source) {
+      currentCursor = 'pointer';
+    } else if (hoverElement.target?.activePin) {
+      currentCursor = 'pointer';
+    } else if (hoverElement.target?.el) {
+      currentCursor = 'move';
+    } else if (mouseState.isDrag) {
+      currentCursor = 'grabbing';
+    }
+
+    if (currentCursor !== cursor) {
+      setCursor(currentCursor);
+    }
   }
 
   function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
@@ -214,7 +246,7 @@ export function App() {
 
   function checkHover(): boolean {
     const { x, y } = convertScreenCoordsToAppCoords(mousePos);
-    const activeTarget = activeElement.target;
+    const activeTarget = hoverElement.target;
 
     for (const element of state.elements) {
       const { pins } = elements[element.type];
@@ -229,14 +261,14 @@ export function App() {
           (PIN_DOT_RADIUS + 4) ** 2
         ) {
           const pinIndex = pins.indexOf(pin);
-          const activeTarget = activeElement.target;
+          const hoverTarget = hoverElement.target;
 
           if (
-            !activeTarget ||
-            activeTarget.el !== element ||
-            activeTarget.activePin?.index !== pinIndex
+            !hoverTarget ||
+            hoverTarget.el !== element ||
+            hoverTarget.activePin?.index !== pinIndex
           ) {
-            activeElement.target = {
+            hoverElement.target = {
               el: element,
               activePin: {
                 index: pinIndex,
@@ -259,7 +291,7 @@ export function App() {
           activeTarget.el !== element ||
           activeTarget.activePin
         ) {
-          activeElement.target = {
+          hoverElement.target = {
             el: element,
             activePin: undefined,
           };
@@ -269,8 +301,8 @@ export function App() {
       }
     }
 
-    if (activeElement.target) {
-      activeElement.target = undefined;
+    if (hoverElement.target) {
+      hoverElement.target = undefined;
       return true;
     }
 
@@ -324,7 +356,7 @@ export function App() {
     state.elements = [];
     pos.x = 0;
     pos.y = 0;
-    activeElement.target = undefined;
+    hoverElement.target = undefined;
     draw();
   }
 
@@ -348,14 +380,100 @@ export function App() {
     assets['power'] = power;
   }, []);
 
-  let cursor: 'pointer' | 'move' | 'grabbing' | undefined;
+  function resetCursorState() {
+    let needRepaint = false;
 
-  if (activeElement.target?.activePin) {
-    cursor = 'pointer';
-  } else if (activeElement.target?.el) {
-    cursor = 'move';
-  } else if (isDrag) {
-    cursor = 'grabbing';
+    if (mouseState.isMouseDown) {
+      mouseState.isMouseDown = false;
+    }
+
+    if (movingElement.target) {
+      movingElement.target = undefined;
+      needRepaint = true;
+    }
+
+    if (mouseState.isDrag) {
+      mouseState.isDrag = false;
+      needRepaint = true;
+    }
+
+    if (wireElement.source) {
+      wireElement.source = undefined;
+      needRepaint = true;
+    }
+
+    return needRepaint;
+  }
+
+  function onMouseUp(e?: MouseEvent) {
+    if (e) {
+      console.log('onMouseUp');
+
+      e.preventDefault();
+
+      if (e.button !== 0) {
+        return;
+      }
+    }
+
+    let needRepaint = false;
+    let needUpdate = false;
+
+    mouseState.isMouseDown = false;
+
+    if (movingElement.target) {
+      movingElement.target = undefined;
+      needRepaint = true;
+    }
+
+    if (mouseState.isDrag) {
+      mouseState.isDrag = false;
+      needRepaint = true;
+      needUpdate = true;
+    }
+
+    if (wireElement.source) {
+      const activeTarget = hoverElement.target;
+
+      if (
+        activeTarget &&
+        activeTarget.activePin &&
+        wireElement.source.el !== activeTarget.el
+      ) {
+        state.connections.push({
+          el1: {
+            el: activeTarget.el,
+            pinIndex: activeTarget.activePin.index,
+          },
+          el2: {
+            el: wireElement.source.el,
+            pinIndex: wireElement.source.pinIndex,
+          },
+        });
+      }
+
+      wireElement.source = undefined;
+      needRepaint = true;
+    } else {
+      const hoverTarget = hoverElement.target;
+
+      if (hoverTarget) {
+        if (hoverTarget.activePin) {
+          wireElement.source = {
+            el: hoverTarget.el,
+            pinIndex: hoverTarget.activePin.index,
+          };
+          needRepaint = true;
+        } else {
+          focusElement.el = hoverTarget.el;
+          needRepaint = true;
+        }
+      }
+    }
+
+    if (needRepaint) {
+      draw();
+    }
   }
 
   return (
@@ -366,88 +484,116 @@ export function App() {
           className={styles.canvas}
           style={cursor ? { cursor } : undefined}
           onClick={(e) => {
+            console.log('onClick');
+            e.preventDefault();
+          }}
+          onMouseDown={(e) => {
             e.preventDefault();
 
-            if (wireElement.source) {
-              const activeTarget = activeElement.target;
-
-              if (
-                activeTarget &&
-                activeTarget.activePin &&
-                wireElement.source.el !== activeTarget.el
-              ) {
-                state.connections.push({
-                  el1: {
-                    el: activeTarget.el,
-                    pinIndex: activeTarget.activePin.index,
-                  },
-                  el2: {
-                    el: wireElement.source.el,
-                    pinIndex: wireElement.source.pinIndex,
-                  },
-                });
-              }
-
-              wireElement.source = undefined;
-              draw();
-            } else {
-              const activeTarget = activeElement.target;
-
-              if (activeTarget && activeTarget.activePin) {
-                wireElement.source = {
-                  el: activeTarget.el,
-                  pinIndex: activeTarget.activePin.index,
-                };
-                draw();
-              }
+            if (e.button !== 0) {
+              return;
             }
-          }}
-          onMouseDown={() => {
-            setDrag(true);
+
+            console.log('onMouseDown');
+
+            if (mouseState.isMouseDown) {
+              onMouseUp();
+            }
+
+            mouseState.isMouseDown = true;
           }}
           onMouseMove={(e) => {
+            console.log('onMouseMove');
+
             mousePos.x = e.clientX;
             mousePos.y = e.clientY;
 
-            let repainted = false;
+            let needRepaint = false;
 
-            if (isDrag) {
-              if (activeElement.target) {
-                activeElement.target.el.pos.x += e.movementX;
-                activeElement.target.el.pos.y += e.movementY;
-              } else {
+            if (checkHover()) {
+              needRepaint = true;
+            }
+
+            const isMoving = Boolean(movingElement.target);
+            const hoverTarget = hoverElement.target;
+
+            if (mouseState.isMouseDown) {
+              if (
+                !isMoving &&
+                hoverTarget &&
+                hoverTarget.activePin &&
+                !wireElement.source
+              ) {
+                wireElement.source = {
+                  el: hoverTarget.el,
+                  pinIndex: hoverTarget.activePin.index,
+                };
+                needRepaint = true;
+              }
+
+              if (!isMoving && wireElement.source) {
+                needRepaint = true;
+              }
+
+              if (
+                !isMoving &&
+                !wireElement.source &&
+                hoverTarget &&
+                hoverTarget.el
+              ) {
+                movingElement.target = { el: hoverTarget.el };
+                needRepaint = true;
+              }
+
+              if (
+                !wireElement.source &&
+                !movingElement.target &&
+                !mouseState.isDrag
+              ) {
+                mouseState.isDrag = true;
+                needRepaint = true;
+              }
+
+              if (movingElement.target) {
+                movingElement.target.el.pos.x += e.movementX;
+                movingElement.target.el.pos.y += e.movementY;
+              } else if (!wireElement.source) {
                 pos.x += e.movementX;
                 pos.y += e.movementY;
               }
 
-              draw();
-              repainted = true;
+              needRepaint = true;
             } else {
-              if (checkHover()) {
-                draw();
-                forceUpdate();
-                repainted = true;
+              if (mouseState.isDrag) {
+                mouseState.isDrag = false;
+                needRepaint = true;
               }
             }
 
-            if (!repainted && wireElement.source) {
+            if (wireElement.source) {
+              needRepaint = true;
+            }
+
+            if (needRepaint) {
               draw();
             }
           }}
-          onMouseLeave={
-            isDrag
-              ? () => {
-                  setDrag(false);
-                }
-              : undefined
-          }
-          onMouseUp={
-            isDrag
-              ? () => {
-                  setDrag(false);
-                }
-              : undefined
-          }
+          onMouseUp={onMouseUp}
+          onMouseLeave={() => {
+            console.log('onMouseLeave');
+            if (resetCursorState()) {
+              draw();
+            }
+          }}
+          onContextMenu={(e) => {
+            if (
+              hoverElement.target ||
+              wireElement.source ||
+              mouseState.isDrag
+            ) {
+              e.preventDefault();
+            }
+          }}
         />
       </div>
       <div className={styles.panel}>
