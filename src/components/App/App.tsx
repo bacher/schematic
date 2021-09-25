@@ -15,6 +15,7 @@ import { elementsDescriptions } from '../../common/data';
 import { getLiteralForSignal } from '../../common/common';
 import { useFunc } from '../../hooks/useFunc';
 import { useOnChange } from '../../hooks/useOnChange';
+import { SchemaErrors } from '../SchemaErrors';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -437,7 +438,7 @@ export function App() {
   function startWiring({ el, pinIndex }: { el: Element; pinIndex: number }) {
     focusElement.el = el;
     wireElement.source = {
-      el: el,
+      el,
       pinIndex,
     };
     state.connections = state.connections.filter(
@@ -754,6 +755,8 @@ export function App() {
             })
           }
         />
+        <SchemaErrors state={state} />
+        <span className={styles.space} />
         <div className={styles.debugPanel}>
           <div>elements: {state.elements.length}</div>
           <div>connections: {state.connections.length}</div>

@@ -47,13 +47,16 @@
   @media (min-width: 768px) {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     flex-basis: 300px;
     padding: 16px 20px;
     border-left: 1px solid #888;
     background: #ddd;
     overflow: hidden;
     overflow-y: auto;
+
+    & > *:not(:last-child) {
+      margin-bottom: 16px;
+    }
   }
 }
 
@@ -61,8 +64,11 @@
   height: 8px;
 }
 
+.space {
+  flex-grow: 1;
+}
+
 .debugPanel {
-  margin-top: 20px;
 }
 
 .yes {
