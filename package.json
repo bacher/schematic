@@ -5,10 +5,10 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build-release": "yarn test && yarn build",
     "test": "yarn test:types && yarn lint",
     "test:types": "tsc --noEmit --project tsconfig.json",
-    "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0",
-    "build-release": "rm -rf build && yarn test && yarn build && mkdir -p releases && cd build && zip -r ../releases/release.zip ."
+    "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0"
   },
   "eslintConfig": {
     "extends": [

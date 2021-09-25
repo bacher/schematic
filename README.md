@@ -1,5 +1,7 @@
 # Schematic
 
+[![Build](https://github.com/Bacher/schematic/actions/workflows/build.yml/badge.svg)](https://github.com/Bacher/schematic/actions/workflows/build.yml)
+
 Transistor level schema physical simulator.
 
 ## Available Scripts
