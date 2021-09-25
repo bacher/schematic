@@ -19,7 +19,7 @@ jobs:
           cmd: install
 
       - name: Install system dependencies
-        run: apt install zip
+        run: sudo apt-get update && sudo apt-get install zip
 
       - name: Build
         uses: borales/actions-yarn@v2.3.0
