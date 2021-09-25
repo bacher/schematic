@@ -7,6 +7,7 @@ export enum ElementType {
   GROUND = 'ground',
   INPUT = 'input',
   OUTPUT = 'output',
+  DOT = 'dot',
 }
 
 export type Coords = {

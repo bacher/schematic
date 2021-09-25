@@ -47,7 +47,7 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
               });
             }}
           />{' '}
-          Threat input as vector
+          Treat input as vector
         </label>
         <label className={styles.option}>
           <input
@@ -59,7 +59,7 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
               });
             }}
           />{' '}
-          Threat output as vector
+          Treat output as vector
         </label>
       </div>
       <table className={styles.table}>

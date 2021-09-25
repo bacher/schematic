@@ -767,6 +767,14 @@ export function Game({ gameId }: Props) {
         >
           output
         </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            addElement(ElementType.DOT);
+          }}
+        >
+          dot
+        </button>
         <span className={styles.divider} />
         <button
           className={styles.button}
