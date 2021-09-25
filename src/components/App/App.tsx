@@ -8,13 +8,16 @@ const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
 const PIN_DOT_RADIUS = 5;
 
+const INPUTS = 'ABCDEFGH';
+const OUTPUTS = 'YZX';
+
 type Coords = {
   x: number;
   y: number;
 };
 
 type Element = {
-  type: 'pnp' | 'npn' | 'power' | 'ground';
+  type: 'pnp' | 'npn' | 'power' | 'ground' | 'input' | 'output';
   pos: Coords;
 };
 
@@ -65,6 +68,12 @@ const elements: Record<Element['type'], ElementDescription> = {
   },
   ground: {
     pins: [{ pos: { x: 0.46, y: 0.15 } }],
+  },
+  input: {
+    pins: [{ pos: { x: 0.5, y: 0.8 } }],
+  },
+  output: {
+    pins: [{ pos: { x: 0.2, y: 0.5 } }],
   },
 };
 
@@ -198,13 +207,38 @@ export function App() {
     for (const element of state.elements) {
       const { type, pos } = element;
 
-      const img = assets[type];
+      if (type === 'input' || type === 'output') {
+        const elements = state.elements.filter((el) => el.type === type);
+        const index = elements.indexOf(element);
 
-      const x0 = pos.x - ICON_SIZE / 2;
-      const y0 = pos.y - ICON_SIZE / 2;
+        const charVariants = type === 'input' ? INPUTS : OUTPUTS;
+        let char = index === -1 ? '?' : charVariants.charAt(index);
 
-      if (img) {
-        ctx.drawImage(img, x0, y0, ICON_SIZE, ICON_SIZE);
+        if (elements.length > charVariants.length) {
+          char = charVariants.charAt(index);
+        } else {
+          char = type === 'input' ? `I${index}` : `Y${index}`;
+        }
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '24px sans-serif';
+        if (type === 'input') {
+          ctx.fillText(char, pos.x, pos.y - 10);
+        } else {
+          ctx.fillText(char, pos.x + 6, pos.y);
+        }
+        ctx.restore();
+      } else {
+        const img = assets[type];
+
+        if (img) {
+          const x0 = pos.x - ICON_SIZE / 2;
+          const y0 = pos.y - ICON_SIZE / 2;
+
+          ctx.drawImage(img, x0, y0, ICON_SIZE, ICON_SIZE);
+        }
       }
 
       const { pins } = elements[type];
@@ -227,8 +261,8 @@ export function App() {
 
         ctx.beginPath();
         ctx.arc(
-          x0 + pin.pos.x * ICON_SIZE,
-          y0 + pin.pos.y * ICON_SIZE,
+          pos.x + (pin.pos.x - 0.5) * ICON_SIZE,
+          pos.y + (pin.pos.y - 0.5) * ICON_SIZE,
           isActive ? PIN_DOT_RADIUS + 1 : PIN_DOT_RADIUS,
           0,
           Math.PI * 2,
@@ -666,6 +700,22 @@ export function App() {
           }}
         >
           pnp
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            addElement('input');
+          }}
+        >
+          input
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            addElement('output');
+          }}
+        >
+          output
         </button>
         <button
           className={styles.button}
