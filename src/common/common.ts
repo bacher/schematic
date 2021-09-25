@@ -6,8 +6,8 @@ const OUTPUT_LITERALS = 'YZXWVUTSRQ';
 export function getLiteralForSignal(
   elements: Element[],
   element: Element,
-  isVector: boolean = false,
-) {
+  isVector = false,
+): string {
   const index = elements.indexOf(element);
 
   const charVariants =

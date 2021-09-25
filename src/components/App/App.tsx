@@ -32,7 +32,11 @@ function getNextGameId(currentGames: GameId[]): GameId {
     return `g1`;
   }
 
-  const match = lastId.match(/^g(\d+)$/)!;
+  const match = lastId.match(/^g(\d+)$/);
+
+  if (!match) {
+    throw new Error();
+  }
 
   return `g${parseInt(match[1], 10) + 1}`;
 }

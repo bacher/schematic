@@ -19,6 +19,7 @@ import { TruthTable } from '../TruthTable';
 import { SchemaErrors } from '../SchemaErrors';
 
 import styles from './Emulator.module.scss';
+import { getCanvasContext } from '../../utils/canvas';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -45,7 +46,11 @@ function getNextId(state: GameState): ElementId {
     return `el1`;
   }
 
-  const match = lastElement.id.match(/^el(\d+)$/)!;
+  const match = lastElement.id.match(/^el(\d+)$/);
+
+  if (!match) {
+    throw new Error();
+  }
 
   return `el${parseInt(match[1], 10) + 1}`;
 }
@@ -102,7 +107,7 @@ export function Emulator({ gameId }: Props) {
 
   const size = useRefState({ width: 0, height: 0 });
   const pos = useRefState({ x: 0, y: 0 });
-  const assets = useRefState<Record<string, any>>({});
+  const assets = useRefState<Record<string, HTMLImageElement>>({});
   const mousePos = useRefState({ x: 0, y: 0 });
   const hoverElement = useRefState<{
     target: HoverTarget | undefined;
@@ -128,8 +133,10 @@ export function Emulator({ gameId }: Props) {
   });
   const mouseState = useRefState({ isMouseDown: false, isDrag: false });
 
-  // @ts-ignore
-  window.state = state;
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).state = state;
+  }
 
   const getElById = useFunc((id: ElementId): Element => {
     const el = state.elements.find((el) => el.id === id);
@@ -142,11 +149,7 @@ export function Emulator({ gameId }: Props) {
   });
 
   const draw = useFunc(() => {
-    const ctx = canvasRef.current!.getContext('2d');
-
-    if (!ctx) {
-      throw new Error();
-    }
+    const ctx = getCanvasContext(canvasRef.current);
 
     ctx.clearRect(0, 0, size.width, size.height);
 
@@ -393,8 +396,12 @@ export function Emulator({ gameId }: Props) {
 
   function updateSize() {
     setTimeout(() => {
-      const app = canvasWrapperRef.current!;
-      const canvas = canvasRef.current!;
+      const app = canvasWrapperRef.current;
+      const canvas = canvasRef.current;
+
+      if (!app || !canvas) {
+        throw new Error();
+      }
 
       size.width = app.clientWidth;
       size.height = app.clientHeight;
