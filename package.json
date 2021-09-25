@@ -5,7 +5,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "tsc --noEmit --project tsconfig.json"
+    "test": "tsc --noEmit --project tsconfig.json",
+    "build-release": "rm -rf build && yarn test && yarn build && mkdir -p releases && cd build && zip -r ../releases/release.zip ."
   },
   "eslintConfig": {
     "extends": [
