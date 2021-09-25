@@ -2,12 +2,24 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "prettier"
-  ],
+  "extends": ["airbnb", "airbnb-typescript", "prettier"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
   "rules": {
-    "@typescript-eslint/explicit-module-boundary-types": "off"
+    "@typescript-eslint/no-shadow": "off",
+    "import/prefer-default-export": "off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "no-lonely-if": "off",
+    "react/no-array-index-key": "off",
+    "react/react-in-jsx-scope": "off",
+    "no-restricted-syntax": [
+      "error",
+      "FunctionExpression",
+      "ForInStatement",
+      "LabeledStatement",
+      "WithStatement",
+      "BinaryExpression[operator='in']"
+    ]
   }
 }

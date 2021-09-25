@@ -55,6 +55,13 @@ function getNextId(state: GameState): ElementId {
   return `el${parseInt(match[1], 10) + 1}`;
 }
 
+function yesNo(value: unknown) {
+  if (value) {
+    return <span className={styles.yes}>yes</span>;
+  }
+  return <span className={styles.no}>no</span>;
+}
+
 type Props = {
   gameId: GameId;
 };
@@ -68,6 +75,56 @@ export function Emulator({ gameId }: Props) {
     isInputVector: false,
     isOutputVector: false,
   });
+
+  const size = useRefState({ width: 0, height: 0 });
+  const pos = useRefState({ x: 0, y: 0 });
+  const assets = useRefState<Record<string, HTMLImageElement>>({});
+  const mousePos = useRefState({ x: 0, y: 0 });
+  const hoverElement = useRefState<{
+    target: HoverTarget | undefined;
+  }>({
+    target: undefined,
+  });
+  const focusElement = useRefState<{ elId: ElementId | undefined }>({
+    elId: undefined,
+  });
+  const movingElement = useRefState<{
+    target: { elId: ElementId } | undefined;
+  }>({
+    target: undefined,
+  });
+  const wireElement = useRefState<{
+    source: { elId: ElementId; pinIndex: number } | undefined;
+  }>({
+    source: undefined,
+  });
+  const state = useRefState<GameState>({
+    elements: [],
+    connections: [],
+  });
+  const mouseState = useRefState({ isMouseDown: false, isDrag: false });
+
+  function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
+    return {
+      x: x - size.width / 2 - pos.x,
+      y: y - size.height / 2 - pos.y,
+    };
+  }
+
+  let draw: () => void;
+
+  function clearState() {
+    pos.x = 0;
+    pos.y = 0;
+    state.elements = [];
+    state.connections = [];
+    hoverElement.target = undefined;
+    focusElement.elId = undefined;
+    movingElement.target = undefined;
+    wireElement.source = undefined;
+    mouseState.isDrag = false;
+    mouseState.isMouseDown = false;
+  }
 
   const loadGameState = useFunc(() => {
     const json = localStorage.getItem(`sch_game_${gameId}`);
@@ -105,34 +162,6 @@ export function Emulator({ gameId }: Props) {
     };
   }, []);
 
-  const size = useRefState({ width: 0, height: 0 });
-  const pos = useRefState({ x: 0, y: 0 });
-  const assets = useRefState<Record<string, HTMLImageElement>>({});
-  const mousePos = useRefState({ x: 0, y: 0 });
-  const hoverElement = useRefState<{
-    target: HoverTarget | undefined;
-  }>({
-    target: undefined,
-  });
-  const focusElement = useRefState<{ elId: ElementId | undefined }>({
-    elId: undefined,
-  });
-  const movingElement = useRefState<{
-    target: { elId: ElementId } | undefined;
-  }>({
-    target: undefined,
-  });
-  const wireElement = useRefState<{
-    source: { elId: ElementId; pinIndex: number } | undefined;
-  }>({
-    source: undefined,
-  });
-  const state = useRefState<GameState>({
-    elements: [],
-    connections: [],
-  });
-  const mouseState = useRefState({ isMouseDown: false, isDrag: false });
-
   if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).state = state;
@@ -148,7 +177,7 @@ export function Emulator({ gameId }: Props) {
     return el;
   });
 
-  const draw = useFunc(() => {
+  draw = useFunc(() => {
     const ctx = getCanvasContext(canvasRef.current);
 
     ctx.clearRect(0, 0, size.width, size.height);
@@ -299,7 +328,7 @@ export function Emulator({ gameId }: Props) {
           ctx.stroke();
           ctx.restore();
         }
-        i++;
+        i += 1;
       }
     }
 
@@ -321,13 +350,6 @@ export function Emulator({ gameId }: Props) {
       setCursor(currentCursor);
     }
   });
-
-  function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
-    return {
-      x: x - size.width / 2 - pos.x,
-      y: y - size.height / 2 - pos.y,
-    };
-  }
 
   function checkHover(): boolean {
     const { x, y } = convertScreenCoordsToAppCoords(mousePos);
@@ -437,24 +459,11 @@ export function Emulator({ gameId }: Props) {
     }
 
     state.elements.push({
-      type: type,
+      type,
       id: getNextId(state),
       pos,
     });
     draw();
-  }
-
-  function clearState() {
-    pos.x = 0;
-    pos.y = 0;
-    state.elements = [];
-    state.connections = [];
-    hoverElement.target = undefined;
-    focusElement.elId = undefined;
-    movingElement.target = undefined;
-    wireElement.source = undefined;
-    mouseState.isDrag = false;
-    mouseState.isMouseDown = false;
   }
 
   function loadAssets() {
@@ -468,7 +477,7 @@ export function Emulator({ gameId }: Props) {
     let remainLoad = loadImages.length;
 
     function onLoad() {
-      remainLoad--;
+      remainLoad -= 1;
 
       if (remainLoad === 0) {
         draw();
@@ -528,7 +537,7 @@ export function Emulator({ gameId }: Props) {
   }) {
     focusElement.elId = elId;
     wireElement.source = {
-      elId: elId,
+      elId,
       pinIndex,
     };
     // state.connections = state.connections.filter(
@@ -586,23 +595,21 @@ export function Emulator({ gameId }: Props) {
 
       wireElement.source = undefined;
       needRepaint = true;
-    } else {
-      if (!wireElement.source) {
-        const hoverTarget = hoverElement.target;
+    } else if (!wireElement.source) {
+      const hoverTarget = hoverElement.target;
 
-        if (hoverTarget && hoverTarget.activePin) {
-          startWiring({
-            elId: hoverTarget.elId,
-            pinIndex: hoverTarget.activePin.index,
-          });
+      if (hoverTarget && hoverTarget.activePin) {
+        startWiring({
+          elId: hoverTarget.elId,
+          pinIndex: hoverTarget.activePin.index,
+        });
+        needRepaint = true;
+      }
+
+      if (hoverTarget && !hoverTarget.activePin) {
+        if (focusElement.elId !== hoverTarget.elId) {
+          focusElement.elId = hoverTarget.elId;
           needRepaint = true;
-        }
-
-        if (hoverTarget && !hoverTarget.activePin) {
-          if (focusElement.elId !== hoverTarget.elId) {
-            focusElement.elId = hoverTarget.elId;
-            needRepaint = true;
-          }
         }
       }
     }
@@ -727,56 +734,70 @@ export function Emulator({ gameId }: Props) {
       </div>
       <div className={styles.panel}>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.POWER);
           }}
         >
           DD
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.GROUND);
           }}
         >
           GND
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.NPN);
           }}
         >
           npn
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.PNP);
           }}
         >
           pnp
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.INPUT);
           }}
         >
           input
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.OUTPUT);
           }}
         >
           output
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             addElement(ElementType.DOT);
           }}
         >
@@ -784,6 +805,7 @@ export function Emulator({ gameId }: Props) {
         </button>
         <span className={styles.divider} />
         <button
+          type="button"
           className={styles.button}
           onClick={(e) => {
             e.preventDefault();
@@ -793,8 +815,10 @@ export function Emulator({ gameId }: Props) {
           Load
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             localStorage.setItem(
               `sch_game_${gameId}`,
               JSON.stringify({
@@ -804,22 +828,28 @@ export function Emulator({ gameId }: Props) {
                 options,
               }),
             );
+            // eslint-disable-next-line no-console
             console.info('Saved');
           }}
         >
           Save
         </button>
         <button
+          type="button"
           className={styles.button}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
             clearState();
             draw();
           }}
         >
           Clear
         </button>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a href="#">
-          <button className={styles.button}>Exit</button>
+          <button type="button" className={styles.button}>
+            Exit
+          </button>
         </a>
       </div>
       <div className={styles.info}>
@@ -849,12 +879,4 @@ export function Emulator({ gameId }: Props) {
       </div>
     </main>
   );
-}
-
-function yesNo(value: unknown) {
-  if (value) {
-    return <span className={styles.yes}>yes</span>;
-  }
-
-  return <span className={styles.no}>no</span>;
 }

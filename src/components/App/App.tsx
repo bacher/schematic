@@ -86,6 +86,7 @@ export function App() {
                 onClick={(e) => {
                   e.preventDefault();
 
+                  // eslint-disable-next-line no-alert
                   if (window.confirm('Are you sure?')) {
                     setCurrentGames(currentGames.filter((id) => id !== gameId));
                     localStorage.removeItem(`sch_game_${gameId}`);

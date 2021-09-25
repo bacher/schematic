@@ -5,6 +5,7 @@ export function useForceUpdate() {
   const [, setInc] = useState(incRef.current);
 
   return useCallback(() => {
-    setInc(++incRef.current);
+    incRef.current += 1;
+    setInc(incRef.current);
   }, []);
 }
