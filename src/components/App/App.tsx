@@ -5,6 +5,7 @@ import { useForceUpdate } from '../../hooks/useForceUpdate';
 import {
   Coords,
   Element,
+  ElementId,
   ElementType,
   GameState,
   Options,
@@ -31,9 +32,21 @@ type Cursor =
   | undefined;
 
 type HoverTarget = {
-  el: Element;
+  elId: ElementId;
   activePin: { index: number } | undefined;
 };
+
+function getNextId(state: GameState): ElementId {
+  const lastElement = state.elements[state.elements.length - 1];
+
+  if (!lastElement) {
+    return `el1`;
+  }
+
+  const match = lastElement.id.match(/^el(\d+)$/)!;
+
+  return `el${parseInt(match[1], 10) + 1}`;
+}
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,16 +75,16 @@ export function App() {
   }>({
     target: undefined,
   });
-  const focusElement = useRefState<{ el: Element | undefined }>({
-    el: undefined,
+  const focusElement = useRefState<{ elId: ElementId | undefined }>({
+    elId: undefined,
   });
   const movingElement = useRefState<{
-    target: { el: Element } | undefined;
+    target: { elId: ElementId } | undefined;
   }>({
     target: undefined,
   });
   const wireElement = useRefState<{
-    source: { el: Element; pinIndex: number } | undefined;
+    source: { elId: ElementId; pinIndex: number } | undefined;
   }>({
     source: undefined,
   });
@@ -83,6 +96,16 @@ export function App() {
 
   // @ts-ignore
   window.state = state;
+
+  const getElById = useFunc((id: ElementId): Element => {
+    const el = state.elements.find((el) => el.id === id);
+
+    if (!el) {
+      throw new Error('Element not found');
+    }
+
+    return el;
+  });
 
   const draw = useFunc(() => {
     const ctx = canvasRef.current!.getContext('2d');
@@ -99,7 +122,7 @@ export function App() {
     for (const element of state.elements) {
       const { pos } = element;
 
-      if (element === hoverElement.target?.el) {
+      if (element.id === hoverElement.target?.elId) {
         ctx.save();
         ctx.strokeStyle = '#ddf';
         ctx.lineWidth = 3;
@@ -110,7 +133,7 @@ export function App() {
           FOCUS_SIZE,
         );
         ctx.restore();
-      } else if (element === focusElement.el) {
+      } else if (element.id === focusElement.elId) {
         ctx.save();
         ctx.strokeStyle = '#ededf3';
         ctx.lineWidth = 2;
@@ -124,19 +147,22 @@ export function App() {
       }
     }
 
-    for (const { el1, el2 } of state.connections) {
-      const pin1 = elementsDescriptions[el1.el.type].pins[el1.pinIndex];
-      const pin2 = elementsDescriptions[el2.el.type].pins[el2.pinIndex];
+    for (const [p1, p2] of state.connections) {
+      const el1 = getElById(p1.elId);
+      const el2 = getElById(p2.elId);
+
+      const pin1 = elementsDescriptions[el1.type].pins[p1.pinIndex];
+      const pin2 = elementsDescriptions[el2.type].pins[p2.pinIndex];
 
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(
-        el1.el.pos.x - ICON_SIZE / 2 + pin1.pos.x * ICON_SIZE,
-        el1.el.pos.y - ICON_SIZE / 2 + pin1.pos.y * ICON_SIZE,
+        el1.pos.x - ICON_SIZE / 2 + pin1.pos.x * ICON_SIZE,
+        el1.pos.y - ICON_SIZE / 2 + pin1.pos.y * ICON_SIZE,
       );
       ctx.lineTo(
-        el2.el.pos.x - ICON_SIZE / 2 + pin2.pos.x * ICON_SIZE,
-        el2.el.pos.y - ICON_SIZE / 2 + pin2.pos.y * ICON_SIZE,
+        el2.pos.x - ICON_SIZE / 2 + pin2.pos.x * ICON_SIZE,
+        el2.pos.y - ICON_SIZE / 2 + pin2.pos.y * ICON_SIZE,
       );
       ctx.strokeStyle = '#333';
       ctx.stroke();
@@ -144,7 +170,8 @@ export function App() {
     }
 
     if (wireElement.source) {
-      const { el, pinIndex } = wireElement.source;
+      const { elId, pinIndex } = wireElement.source;
+      const el = getElById(elId);
 
       const { pos } = elementsDescriptions[el.type].pins[pinIndex];
 
@@ -202,13 +229,13 @@ export function App() {
       for (const pin of pins) {
         const isActive =
           activeTarget &&
-          element === activeTarget.el &&
+          element.id === activeTarget.elId &&
           activeTarget.activePin &&
           activeTarget.activePin.index === i;
 
         const isWire =
           wireElement.source &&
-          wireElement.source.el === element &&
+          wireElement.source.elId === element.id &&
           wireElement.source.pinIndex === i;
 
         ctx.beginPath();
@@ -247,7 +274,7 @@ export function App() {
       currentCursor = 'pointer';
     } else if (hoverElement.target?.activePin) {
       currentCursor = 'pointer';
-    } else if (hoverElement.target?.el) {
+    } else if (hoverElement.target) {
       currentCursor = 'move';
     } else if (mouseState.isDrag) {
       currentCursor = 'grabbing';
@@ -286,11 +313,11 @@ export function App() {
 
           if (
             !hoverTarget ||
-            hoverTarget.el !== element ||
+            hoverTarget.elId !== element.id ||
             hoverTarget.activePin?.index !== pinIndex
           ) {
             hoverElement.target = {
-              el: element,
+              elId: element.id,
               activePin: {
                 index: pinIndex,
               },
@@ -309,11 +336,11 @@ export function App() {
       if (x > x0 && x < x0 + ICON_SIZE && y > y0 && y < y0 + ICON_SIZE) {
         if (
           !activeTarget ||
-          activeTarget.el !== element ||
+          activeTarget.elId !== element.id ||
           activeTarget.activePin
         ) {
           hoverElement.target = {
-            el: element,
+            elId: element.id,
             activePin: undefined,
           };
           return true;
@@ -370,6 +397,7 @@ export function App() {
 
     state.elements.push({
       type: type,
+      id: getNextId(state),
       pos,
     });
     draw();
@@ -381,7 +409,7 @@ export function App() {
     state.elements = [];
     state.connections = [];
     hoverElement.target = undefined;
-    focusElement.el = undefined;
+    focusElement.elId = undefined;
     movingElement.target = undefined;
     wireElement.source = undefined;
     mouseState.isDrag = false;
@@ -435,14 +463,20 @@ export function App() {
     return needRepaint;
   }
 
-  function startWiring({ el, pinIndex }: { el: Element; pinIndex: number }) {
-    focusElement.el = el;
+  function startWiring({
+    elId,
+    pinIndex,
+  }: {
+    elId: ElementId;
+    pinIndex: number;
+  }) {
+    focusElement.elId = elId;
     wireElement.source = {
-      el,
+      elId: elId,
       pinIndex,
     };
     state.connections = state.connections.filter(
-      ({ el1, el2 }) => el1.el !== el && el2.el !== el,
+      ([p1, p2]) => p1.elId !== elId && p2.elId !== elId,
     );
   }
 
@@ -459,8 +493,8 @@ export function App() {
 
     mouseState.isMouseDown = false;
 
-    if (focusElement.el && !wireElement.source && !movingElement.target) {
-      focusElement.el = undefined;
+    if (focusElement.elId && !wireElement.source && !movingElement.target) {
+      focusElement.elId = undefined;
       needRepaint = true;
     }
 
@@ -480,18 +514,18 @@ export function App() {
       if (
         activeTarget &&
         activeTarget.activePin &&
-        wireElement.source.el !== activeTarget.el
+        wireElement.source.elId !== activeTarget.elId
       ) {
-        state.connections.push({
-          el1: {
-            el: activeTarget.el,
+        state.connections.push([
+          {
+            elId: activeTarget.elId,
             pinIndex: activeTarget.activePin.index,
           },
-          el2: {
-            el: wireElement.source.el,
+          {
+            elId: wireElement.source.elId,
             pinIndex: wireElement.source.pinIndex,
           },
-        });
+        ]);
       }
 
       wireElement.source = undefined;
@@ -502,15 +536,15 @@ export function App() {
 
         if (hoverTarget && hoverTarget.activePin) {
           startWiring({
-            el: hoverTarget.el,
+            elId: hoverTarget.elId,
             pinIndex: hoverTarget.activePin.index,
           });
           needRepaint = true;
         }
 
         if (hoverTarget && !hoverTarget.activePin) {
-          if (focusElement.el !== hoverTarget.el) {
-            focusElement.el = hoverTarget.el;
+          if (focusElement.elId !== hoverTarget.elId) {
+            focusElement.elId = hoverTarget.elId;
             needRepaint = true;
           }
         }
@@ -566,7 +600,7 @@ export function App() {
                 hoverTarget.activePin
               ) {
                 startWiring({
-                  el: hoverTarget.el,
+                  elId: hoverTarget.elId,
                   pinIndex: hoverTarget.activePin.index,
                 });
                 needRepaint = true;
@@ -576,14 +610,11 @@ export function App() {
                 needRepaint = true;
               }
 
-              if (
-                !isMoving &&
-                !wireElement.source &&
-                hoverTarget &&
-                hoverTarget.el
-              ) {
-                movingElement.target = { el: hoverTarget.el };
-                focusElement.el = hoverTarget.el;
+              if (!isMoving && !wireElement.source && hoverTarget) {
+                movingElement.target = {
+                  elId: hoverTarget.elId,
+                };
+                focusElement.elId = hoverTarget.elId;
                 needRepaint = true;
               }
 
@@ -597,8 +628,9 @@ export function App() {
               }
 
               if (movingElement.target) {
-                movingElement.target.el.pos.x += e.movementX;
-                movingElement.target.el.pos.y += e.movementY;
+                const el = getElById(movingElement.target.elId);
+                el.pos.x += e.movementX;
+                el.pos.y += e.movementY;
               } else if (!wireElement.source) {
                 pos.x += e.movementX;
                 pos.y += e.movementY;
@@ -761,7 +793,7 @@ export function App() {
           <div>elements: {state.elements.length}</div>
           <div>connections: {state.connections.length}</div>
           <div>el moving: {yesNo(movingElement.target)}</div>
-          <div>el in focus: {yesNo(focusElement.el)}</div>
+          <div>el in focus: {yesNo(focusElement.elId)}</div>
           <div>el hover: {yesNo(hoverElement.target)}</div>
           <div>pin hover: {yesNo(hoverElement.target?.activePin)}</div>
           <div>wiring: {yesNo(wireElement.source)}</div>

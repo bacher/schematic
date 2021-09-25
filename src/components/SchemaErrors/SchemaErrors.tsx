@@ -15,9 +15,9 @@ export function SchemaErrors({ state }: Props) {
     const used = pins.map(() => false);
 
     for (const connection of state.connections) {
-      for (const pinEl of [connection.el1, connection.el2]) {
-        if (pinEl.el === el) {
-          used[pinEl.pinIndex] = true;
+      for (const p of connection) {
+        if (p.elId === el.id) {
+          used[p.pinIndex] = true;
         }
       }
     }

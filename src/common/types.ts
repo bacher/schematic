@@ -12,15 +12,17 @@ export type Coords = {
   y: number;
 };
 
+export type ElementId = `el${number}`;
+
 export type Element = {
   type: ElementType;
+  id: ElementId;
   pos: Coords;
 };
 
-export type Connection = {
-  el1: { el: Element; pinIndex: number };
-  el2: { el: Element; pinIndex: number };
-};
+export type ConnectionPin = { elId: ElementId; pinIndex: number };
+
+export type Connection = [ConnectionPin, ConnectionPin];
 
 export type Pin = {
   pos: Coords;
