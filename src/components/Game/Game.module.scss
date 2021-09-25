@@ -1,0 +1,80 @@
+.app {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  top: 0;
+  left: 0;
+  padding: 4px;
+  border-radius: 2px;
+}
+
+.button {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: none;
+  color: #333;
+  background: #dadada;
+  white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+}
+
+.canvasWrapper {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.canvas {
+  display: block;
+  cursor: grab;
+}
+
+.info {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 300px;
+    padding: 16px 20px;
+    border-left: 1px solid #888;
+    background: #ddd;
+    overflow: hidden;
+    overflow-y: auto;
+
+    & > *:not(:last-child) {
+      margin-bottom: 16px;
+    }
+  }
+}
+
+.divider {
+  height: 8px;
+}
+
+.space {
+  flex-grow: 1;
+}
+
+.debugPanel {
+}
+
+.yes {
+  color: #4ebd4e;
+}
+
+.no {
+  color: #666;
+}

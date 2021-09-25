@@ -1,3 +1,5 @@
+export type GameId = `g${number}`;
+
 export enum ElementType {
   PNP = 'pnp',
   NPN = 'npn',
