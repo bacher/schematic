@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, MouseEvent, useState } from 'react';
 
 import { useRefState } from '../../hooks/useRefState';
+import { useForceUpdate } from '../../hooks/useForceUpdate';
 import styles from './App.module.scss';
 
 const ICON_SIZE = 48;
@@ -70,7 +71,16 @@ const elements: Record<Element['type'], ElementDescription> = {
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const forceUpdate = useForceUpdate();
   const [cursor, setCursor] = useState<Cursor>();
+
+  useEffect(() => {
+    const intervalId = window.setInterval(forceUpdate, 500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const size = useRefState({ width: 0, height: 0 });
   const pos = useRefState({ x: 0, y: 0 });
@@ -120,7 +130,36 @@ export function App() {
     ctx.save();
     ctx.translate(size.width / 2 + pos.x + 0.5, size.height / 2 + pos.y + 0.5);
 
+    for (const element of state.elements) {
+      const { pos } = element;
+
+      if (element === hoverElement.target?.el) {
+        ctx.save();
+        ctx.strokeStyle = '#ddf';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(
+          pos.x - FOCUS_SIZE / 2,
+          pos.y - FOCUS_SIZE / 2,
+          FOCUS_SIZE,
+          FOCUS_SIZE,
+        );
+        ctx.restore();
+      } else if (element === focusElement.el) {
+        ctx.save();
+        ctx.strokeStyle = '#ededf3';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          pos.x - FOCUS_SIZE / 2,
+          pos.y - FOCUS_SIZE / 2,
+          FOCUS_SIZE,
+          FOCUS_SIZE,
+        );
+        ctx.restore();
+      }
+    }
+
     for (const { el1, el2 } of state.connections) {
+      ctx.save();
       ctx.beginPath();
       const pin1 = elements[el1.el.type].pins[el1.pinIndex];
       const pin2 = elements[el2.el.type].pins[el2.pinIndex];
@@ -134,21 +173,30 @@ export function App() {
       );
       ctx.strokeStyle = '#333';
       ctx.stroke();
+      ctx.restore();
+    }
+
+    if (wireElement.source) {
+      const { el, pinIndex } = wireElement.source;
+
+      const { pos } = elements[el.type].pins[pinIndex];
+
+      const x0 = pos.x * ICON_SIZE + el.pos.x - ICON_SIZE / 2;
+      const y0 = pos.y * ICON_SIZE + el.pos.y - ICON_SIZE / 2;
+
+      const { x, y } = convertScreenCoordsToAppCoords(mousePos);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = '#888';
+      ctx.stroke();
+      ctx.restore();
     }
 
     for (const element of state.elements) {
       const { type, pos } = element;
-
-      if (element === hoverElement.target?.el) {
-        ctx.strokeStyle = '#ddf';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(
-          pos.x - FOCUS_SIZE / 2,
-          pos.y - FOCUS_SIZE / 2,
-          FOCUS_SIZE,
-          FOCUS_SIZE,
-        );
-      }
 
       const img = assets[type];
 
@@ -186,36 +234,23 @@ export function App() {
           Math.PI * 2,
         );
         ctx.closePath();
-        ctx.lineWidth = 2;
 
         if (isActive || isWire) {
+          ctx.save();
           ctx.fillStyle = isWire ? '#d66' : '#66d';
           ctx.fill();
+          ctx.restore();
         } else {
+          ctx.save();
           ctx.fillStyle = '#fff';
           ctx.fill();
           ctx.strokeStyle = '#448';
+          ctx.lineWidth = 2;
           ctx.stroke();
+          ctx.restore();
         }
         i++;
       }
-    }
-
-    if (wireElement.source) {
-      const { el, pinIndex } = wireElement.source;
-
-      const { pos } = elements[el.type].pins[pinIndex];
-
-      const x0 = pos.x * ICON_SIZE + el.pos.x - ICON_SIZE / 2;
-      const y0 = pos.y * ICON_SIZE + el.pos.y - ICON_SIZE / 2;
-
-      const { x, y } = convertScreenCoordsToAppCoords(mousePos);
-
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x, y);
-      ctx.strokeStyle = '#888';
-      ctx.stroke();
     }
 
     ctx.restore();
@@ -417,9 +452,13 @@ export function App() {
     }
 
     let needRepaint = false;
-    let needUpdate = false;
 
     mouseState.isMouseDown = false;
+
+    if (focusElement.el && !wireElement.source && !movingElement.target) {
+      focusElement.el = undefined;
+      needRepaint = true;
+    }
 
     if (movingElement.target) {
       movingElement.target = undefined;
@@ -429,7 +468,6 @@ export function App() {
     if (mouseState.isDrag) {
       mouseState.isDrag = false;
       needRepaint = true;
-      needUpdate = true;
     }
 
     if (wireElement.source) {
@@ -455,16 +493,18 @@ export function App() {
       wireElement.source = undefined;
       needRepaint = true;
     } else {
-      const hoverTarget = hoverElement.target;
+      if (!wireElement.source) {
+        const hoverTarget = hoverElement.target;
 
-      if (hoverTarget) {
-        if (hoverTarget.activePin) {
+        if (hoverTarget && hoverTarget.activePin) {
           wireElement.source = {
             el: hoverTarget.el,
             pinIndex: hoverTarget.activePin.index,
           };
           needRepaint = true;
-        } else {
+        }
+
+        if (hoverTarget && !hoverTarget.activePin) {
           focusElement.el = hoverTarget.el;
           needRepaint = true;
         }
@@ -503,8 +543,6 @@ export function App() {
             mouseState.isMouseDown = true;
           }}
           onMouseMove={(e) => {
-            console.log('onMouseMove');
-
             mousePos.x = e.clientX;
             mousePos.y = e.clientY;
 
@@ -542,6 +580,7 @@ export function App() {
                 hoverTarget.el
               ) {
                 movingElement.target = { el: hoverTarget.el };
+                focusElement.el = hoverTarget.el;
                 needRepaint = true;
               }
 
@@ -655,7 +694,26 @@ export function App() {
             </Fragment>
           ))}
         </div>
+        <div className={styles.debugPanel}>
+          <div>elements: {state.elements.length}</div>
+          <div>connections: {state.connections.length}</div>
+          <div>el moving: {yesNo(movingElement.target)}</div>
+          <div>el in focus: {yesNo(focusElement.el)}</div>
+          <div>el hover: {yesNo(hoverElement.target)}</div>
+          <div>pin hover: {yesNo(hoverElement.target?.activePin)}</div>
+          <div>wiring: {yesNo(wireElement.source)}</div>
+          <div>drag: {yesNo(mouseState.isDrag)}</div>
+          <div>mouse down: {yesNo(mouseState.isMouseDown)}</div>
+        </div>
       </div>
     </main>
   );
+}
+
+function yesNo(value: unknown) {
+  if (value) {
+    return <span className={styles.yes}>yes</span>;
+  }
+
+  return <span className={styles.no}>no</span>;
 }
