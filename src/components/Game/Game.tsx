@@ -11,13 +11,14 @@ import {
   GameState,
   Options,
 } from '../../common/types';
-import styles from './Game.module.scss';
-import { TruthTable } from '../TruthTable';
 import { elementsDescriptions } from '../../common/data';
 import { getLiteralForSignal } from '../../common/common';
 import { useFunc } from '../../hooks/useFunc';
 import { useOnChange } from '../../hooks/useOnChange';
+import { TruthTable } from '../TruthTable';
 import { SchemaErrors } from '../SchemaErrors';
+
+import styles from './Game.module.scss';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;

@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+
 import { GameId } from '../../common/types';
-import { Game } from '../Game';
 import { useOnChange } from '../../hooks/useOnChange';
+import { useWindowEvent } from '../../hooks/useWindowEvent';
+import { Game } from '../Game';
 
 import styles from './App.module.scss';
-import { useFunc } from '../../hooks/useFunc';
-import { useWindowEvent } from '../../hooks/useWindowEvent';
 
 function getCurrentGameId(allowedIds: GameId[]): GameId | undefined {
   const hash = (window.location.hash ?? '').trim().replace(/^#/, '');
-
-  console.log('hash =', hash, 'allowed:', allowedIds);
 
   if (hash) {
     const match = hash.match(/^g(\d+)$/);
