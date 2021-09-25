@@ -450,24 +450,39 @@ export function Game({ gameId }: Props) {
     mouseState.isMouseDown = false;
   }
 
+  function loadAssets() {
+    const loadImages = [
+      ElementType.PNP,
+      ElementType.NPN,
+      ElementType.POWER,
+      ElementType.GROUND,
+    ];
+
+    let remainLoad = loadImages.length;
+
+    function onLoad() {
+      remainLoad--;
+
+      if (remainLoad === 0) {
+        draw();
+      }
+    }
+
+    for (const imgName of loadImages) {
+      const image = new Image();
+      image.src = `assets/${imgName}.png`;
+      image.addEventListener('load', onLoad);
+
+      assets[imgName] = image;
+    }
+  }
+
   useEffect(() => {
     updateSize();
 
     window.addEventListener('resize', updateSize);
 
-    const pnp = new Image();
-    pnp.src = 'assets/pnp.png';
-    const npn = new Image();
-    npn.src = 'assets/npn.png';
-    const ground = new Image();
-    ground.src = 'assets/ground.png';
-    const power = new Image();
-    power.src = 'assets/power.png';
-
-    assets['pnp'] = pnp;
-    assets['npn'] = npn;
-    assets['ground'] = ground;
-    assets['power'] = power;
+    loadAssets();
   }, []);
 
   useOnChange(draw, [options]);
