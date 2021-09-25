@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { GameId } from '../../common/types';
 import { useOnChange } from '../../hooks/useOnChange';
 import { useWindowEvent } from '../../hooks/useWindowEvent';
-import { Game } from '../Game';
+import { Emulator } from '../Emulator';
 
 import styles from './App.module.scss';
 
@@ -64,13 +64,13 @@ export function App() {
   });
 
   if (currentGameId) {
-    return <Game key={currentGameId} gameId={currentGameId} />;
+    return <Emulator key={currentGameId} gameId={currentGameId} />;
   }
 
   return (
     <div className={styles.wrapper}>
       <h1 className={styles.title}>Schematic</h1>
-      <h2 className={styles.gamesTitle}>Current games:</h2>
+      <h2 className={styles.gamesTitle}>Current schemas:</h2>
       <ul>
         {currentGames.length ? (
           currentGames.map((gameId) => (
@@ -93,7 +93,7 @@ export function App() {
             </li>
           ))
         ) : (
-          <div>no saved games</div>
+          <div>no saved schemas</div>
         )}
       </ul>
       <button
@@ -108,7 +108,7 @@ export function App() {
           }, 0);
         }}
       >
-        New game
+        New schema
       </button>
     </div>
   );

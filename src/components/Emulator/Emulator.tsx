@@ -18,7 +18,7 @@ import { useOnChange } from '../../hooks/useOnChange';
 import { TruthTable } from '../TruthTable';
 import { SchemaErrors } from '../SchemaErrors';
 
-import styles from './Game.module.scss';
+import styles from './Emulator.module.scss';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -54,7 +54,7 @@ type Props = {
   gameId: GameId;
 };
 
-export function Game({ gameId }: Props) {
+export function Emulator({ gameId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const forceUpdate = useForceUpdate();
