@@ -160,6 +160,7 @@ export function Emulator({ gameId }: Props) {
     return () => {
       window.clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (process.env.NODE_ENV === 'development') {
@@ -499,6 +500,7 @@ export function Emulator({ gameId }: Props) {
     window.addEventListener('resize', updateSize);
 
     loadAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useOnChange(draw, [options]);

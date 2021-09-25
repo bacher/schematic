@@ -32,7 +32,13 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
       renderInputs,
       renderOutputs,
     };
-  }, [elements.length, options.isInputVector, options.isOutputVector]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    elements,
+    elements.length,
+    options.isInputVector,
+    options.isOutputVector,
+  ]);
 
   return (
     <div className={styles.wrapper}>

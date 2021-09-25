@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { useFunc } from './useFunc';
 
 export function useWindowEvent(
@@ -13,5 +14,5 @@ export function useWindowEvent(
     return () => {
       window.removeEventListener(eventName, func, false);
     };
-  }, []);
+  }, [eventName, func]);
 }

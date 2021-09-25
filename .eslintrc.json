@@ -2,12 +2,22 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
-  "extends": ["airbnb", "airbnb-typescript", "prettier"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "airbnb",
+    "airbnb-typescript",
+    "prettier",
+    "plugin:react-hooks/recommended",
+    "plugin:eslint-comments/recommended"
+  ],
   "parserOptions": {
     "project": "./tsconfig.json"
   },
   "rules": {
+    "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-shadow": "off",
+    "eslint-comments/no-unused-disable": "error",
     "import/prefer-default-export": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "no-lonely-if": "off",
