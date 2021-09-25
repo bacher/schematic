@@ -388,11 +388,16 @@ export function App() {
   }
 
   function clearState() {
-    state.elements = [];
     pos.x = 0;
     pos.y = 0;
+    state.elements = [];
+    state.connections = [];
     hoverElement.target = undefined;
-    draw();
+    focusElement.el = undefined;
+    movingElement.target = undefined;
+    wireElement.source = undefined;
+    mouseState.isDrag = false;
+    mouseState.isMouseDown = false;
   }
 
   useEffect(() => {
@@ -671,7 +676,47 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
+            const json = localStorage.getItem('sch_save');
+
+            if (!json) {
+              return;
+            }
+
+            const { pos: savedPos, elements, connections } = JSON.parse(json);
+
             clearState();
+
+            pos.x = savedPos.x;
+            pos.y = savedPos.y;
+            state.elements = elements;
+            state.connections = connections;
+
+            draw();
+          }}
+        >
+          Load
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            localStorage.setItem(
+              'sch_save',
+              JSON.stringify({
+                pos,
+                elements: state.elements,
+                connections: state.connections,
+              }),
+            );
+            console.log('Saved');
+          }}
+        >
+          Save
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            clearState();
+            draw();
           }}
         >
           Clear
