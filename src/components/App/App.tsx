@@ -1,25 +1,24 @@
-import { Fragment, useEffect, useRef, MouseEvent, useState } from 'react';
+import { MouseEvent, useEffect, useRef, useState } from 'react';
 
 import { useRefState } from '../../hooks/useRefState';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
+import {
+  Coords,
+  Element,
+  ElementType,
+  GameState,
+  Options,
+} from '../../common/types';
 import styles from './App.module.scss';
+import { TruthTable } from '../TruthTable';
+import { elementsDescriptions } from '../../common/data';
+import { getLiteralForSignal } from '../../common/common';
+import { useFunc } from '../../hooks/useFunc';
+import { useOnChange } from '../../hooks/useOnChange';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
 const PIN_DOT_RADIUS = 5;
-
-const INPUTS = 'ABCDEFGH';
-const OUTPUTS = 'YZX';
-
-type Coords = {
-  x: number;
-  y: number;
-};
-
-type Element = {
-  type: 'pnp' | 'npn' | 'power' | 'ground' | 'input' | 'output';
-  pos: Coords;
-};
 
 type Cursor =
   | 'move'
@@ -30,51 +29,9 @@ type Cursor =
   | 'cross'
   | undefined;
 
-type Connection = {
-  el1: { el: Element; pinIndex: number };
-  el2: { el: Element; pinIndex: number };
-};
-
-type GameState = {
-  elements: Element[];
-  connections: Connection[];
-};
-
-type Pin = {
-  pos: Coords;
-};
-
-type ElementDescription = {
-  pins: Pin[];
-};
-
-const elements: Record<Element['type'], ElementDescription> = {
-  pnp: {
-    pins: [
-      { pos: { x: 0.47, y: 0.94 } },
-      { pos: { x: -0.07, y: 0.32 } },
-      { pos: { x: 1.05, y: 0.32 } },
-    ],
-  },
-  npn: {
-    pins: [
-      { pos: { x: 0.47, y: 1 } },
-      { pos: { x: -0.07, y: 0.33 } },
-      { pos: { x: 1.05, y: 0.32 } },
-    ],
-  },
-  power: {
-    pins: [{ pos: { x: 0.52, y: 0.8 } }],
-  },
-  ground: {
-    pins: [{ pos: { x: 0.46, y: 0.15 } }],
-  },
-  input: {
-    pins: [{ pos: { x: 0.5, y: 0.8 } }],
-  },
-  output: {
-    pins: [{ pos: { x: 0.2, y: 0.5 } }],
-  },
+type HoverTarget = {
+  el: Element;
+  activePin: { index: number } | undefined;
 };
 
 export function App() {
@@ -82,6 +39,10 @@ export function App() {
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const forceUpdate = useForceUpdate();
   const [cursor, setCursor] = useState<Cursor>();
+  const [options, setOptions] = useState<Options>({
+    isInputVector: false,
+    isOutputVector: false,
+  });
 
   useEffect(() => {
     const intervalId = window.setInterval(forceUpdate, 500);
@@ -96,12 +57,7 @@ export function App() {
   const assets = useRefState<Record<string, any>>({});
   const mousePos = useRefState({ x: 0, y: 0 });
   const hoverElement = useRefState<{
-    target:
-      | {
-          el: Element;
-          activePin: { index: number } | undefined;
-        }
-      | undefined;
+    target: HoverTarget | undefined;
   }>({
     target: undefined,
   });
@@ -127,7 +83,7 @@ export function App() {
   // @ts-ignore
   window.state = state;
 
-  function draw() {
+  const draw = useFunc(() => {
     const ctx = canvasRef.current!.getContext('2d');
 
     if (!ctx) {
@@ -168,10 +124,11 @@ export function App() {
     }
 
     for (const { el1, el2 } of state.connections) {
+      const pin1 = elementsDescriptions[el1.el.type].pins[el1.pinIndex];
+      const pin2 = elementsDescriptions[el2.el.type].pins[el2.pinIndex];
+
       ctx.save();
       ctx.beginPath();
-      const pin1 = elements[el1.el.type].pins[el1.pinIndex];
-      const pin2 = elements[el2.el.type].pins[el2.pinIndex];
       ctx.moveTo(
         el1.el.pos.x - ICON_SIZE / 2 + pin1.pos.x * ICON_SIZE,
         el1.el.pos.y - ICON_SIZE / 2 + pin1.pos.y * ICON_SIZE,
@@ -188,7 +145,7 @@ export function App() {
     if (wireElement.source) {
       const { el, pinIndex } = wireElement.source;
 
-      const { pos } = elements[el.type].pins[pinIndex];
+      const { pos } = elementsDescriptions[el.type].pins[pinIndex];
 
       const x0 = pos.x * ICON_SIZE + el.pos.x - ICON_SIZE / 2;
       const y0 = pos.y * ICON_SIZE + el.pos.y - ICON_SIZE / 2;
@@ -207,24 +164,20 @@ export function App() {
     for (const element of state.elements) {
       const { type, pos } = element;
 
-      if (type === 'input' || type === 'output') {
-        const elements = state.elements.filter((el) => el.type === type);
-        const index = elements.indexOf(element);
-
-        const charVariants = type === 'input' ? INPUTS : OUTPUTS;
-        let char = index === -1 ? '?' : charVariants.charAt(index);
-
-        if (elements.length > charVariants.length) {
-          char = charVariants.charAt(index);
-        } else {
-          char = type === 'input' ? `I${index}` : `Y${index}`;
-        }
+      if (type === ElementType.INPUT || type === ElementType.OUTPUT) {
+        const char = getLiteralForSignal(
+          state.elements.filter((el) => el.type === type),
+          element,
+          type === ElementType.INPUT
+            ? options.isInputVector
+            : options.isOutputVector,
+        );
 
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = '24px sans-serif';
-        if (type === 'input') {
+        if (type === ElementType.INPUT) {
           ctx.fillText(char, pos.x, pos.y - 10);
         } else {
           ctx.fillText(char, pos.x + 6, pos.y);
@@ -241,11 +194,9 @@ export function App() {
         }
       }
 
-      const { pins } = elements[type];
-
-      let i = 0;
-
+      const { pins } = elementsDescriptions[type];
       const activeTarget = hoverElement.target;
+      let i = 0;
 
       for (const pin of pins) {
         const isActive =
@@ -304,7 +255,7 @@ export function App() {
     if (currentCursor !== cursor) {
       setCursor(currentCursor);
     }
-  }
+  });
 
   function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
     return {
@@ -318,7 +269,7 @@ export function App() {
     const activeTarget = hoverElement.target;
 
     for (const element of state.elements) {
-      const { pins } = elements[element.type];
+      const { pins } = elementsDescriptions[element.type];
 
       const x0 = element.pos.x - ICON_SIZE / 2;
       const y0 = element.pos.y - ICON_SIZE / 2;
@@ -406,7 +357,7 @@ export function App() {
     return false;
   }
 
-  function addElement(type: Element['type']) {
+  function addElement(type: ElementType) {
     const pos = convertScreenCoordsToAppCoords({
       x: size.width / 2,
       y: size.height / 2,
@@ -456,6 +407,8 @@ export function App() {
     assets['power'] = power;
   }, []);
 
+  useOnChange(draw, [options]);
+
   function resetCursorState() {
     let needRepaint = false;
 
@@ -481,10 +434,19 @@ export function App() {
     return needRepaint;
   }
 
-  function onMouseUp(e?: MouseEvent) {
-    if (e) {
-      console.log('onMouseUp');
+  function startWiring({ el, pinIndex }: { el: Element; pinIndex: number }) {
+    focusElement.el = el;
+    wireElement.source = {
+      el: el,
+      pinIndex,
+    };
+    state.connections = state.connections.filter(
+      ({ el1, el2 }) => el1.el !== el && el2.el !== el,
+    );
+  }
 
+  const onMouseUp = useFunc((e?: MouseEvent) => {
+    if (e) {
       e.preventDefault();
 
       if (e.button !== 0) {
@@ -538,16 +500,18 @@ export function App() {
         const hoverTarget = hoverElement.target;
 
         if (hoverTarget && hoverTarget.activePin) {
-          wireElement.source = {
+          startWiring({
             el: hoverTarget.el,
             pinIndex: hoverTarget.activePin.index,
-          };
+          });
           needRepaint = true;
         }
 
         if (hoverTarget && !hoverTarget.activePin) {
-          focusElement.el = hoverTarget.el;
-          needRepaint = true;
+          if (focusElement.el !== hoverTarget.el) {
+            focusElement.el = hoverTarget.el;
+            needRepaint = true;
+          }
         }
       }
     }
@@ -555,7 +519,7 @@ export function App() {
     if (needRepaint) {
       draw();
     }
-  }
+  });
 
   return (
     <main className={styles.app}>
@@ -565,7 +529,6 @@ export function App() {
           className={styles.canvas}
           style={cursor ? { cursor } : undefined}
           onClick={(e) => {
-            console.log('onClick');
             e.preventDefault();
           }}
           onMouseDown={(e) => {
@@ -574,8 +537,6 @@ export function App() {
             if (e.button !== 0) {
               return;
             }
-
-            console.log('onMouseDown');
 
             if (mouseState.isMouseDown) {
               onMouseUp();
@@ -599,14 +560,14 @@ export function App() {
             if (mouseState.isMouseDown) {
               if (
                 !isMoving &&
+                !wireElement.source &&
                 hoverTarget &&
-                hoverTarget.activePin &&
-                !wireElement.source
+                hoverTarget.activePin
               ) {
-                wireElement.source = {
+                startWiring({
                   el: hoverTarget.el,
                   pinIndex: hoverTarget.activePin.index,
-                };
+                });
                 needRepaint = true;
               }
 
@@ -660,7 +621,6 @@ export function App() {
           }}
           onMouseUp={onMouseUp}
           onMouseLeave={() => {
-            console.log('onMouseLeave');
             if (resetCursorState()) {
               draw();
             }
@@ -680,7 +640,7 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
-            addElement('power');
+            addElement(ElementType.POWER);
           }}
         >
           DD
@@ -688,7 +648,7 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
-            addElement('ground');
+            addElement(ElementType.GROUND);
           }}
         >
           GND
@@ -696,7 +656,15 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
-            addElement('pnp');
+            addElement(ElementType.NPN);
+          }}
+        >
+          npn
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => {
+            addElement(ElementType.PNP);
           }}
         >
           pnp
@@ -704,7 +672,7 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
-            addElement('input');
+            addElement(ElementType.INPUT);
           }}
         >
           input
@@ -712,19 +680,12 @@ export function App() {
         <button
           className={styles.button}
           onClick={() => {
-            addElement('output');
+            addElement(ElementType.OUTPUT);
           }}
         >
           output
         </button>
-        <button
-          className={styles.button}
-          onClick={() => {
-            addElement('npn');
-          }}
-        >
-          npn
-        </button>
+        <span className={styles.divider} />
         <button
           className={styles.button}
           onClick={() => {
@@ -734,7 +695,12 @@ export function App() {
               return;
             }
 
-            const { pos: savedPos, elements, connections } = JSON.parse(json);
+            const {
+              pos: savedPos,
+              elements,
+              connections,
+              options: savedOptions,
+            } = JSON.parse(json);
 
             clearState();
 
@@ -743,7 +709,9 @@ export function App() {
             state.elements = elements;
             state.connections = connections;
 
-            draw();
+            setOptions(savedOptions);
+
+            window.setTimeout(draw, 0);
           }}
         >
           Load
@@ -757,9 +725,10 @@ export function App() {
                 pos,
                 elements: state.elements,
                 connections: state.connections,
+                options,
               }),
             );
-            console.log('Saved');
+            console.info('Saved');
           }}
         >
           Save
@@ -775,22 +744,16 @@ export function App() {
         </button>
       </div>
       <div className={styles.info}>
-        <div className={styles.table}>
-          <div className={styles.tableCell}>A</div>
-          <div className={styles.tableCell}>B</div>
-          <div className={styles.tableCell}>C</div>
-          <div className={styles.tableCell}>D</div>
-          <div className={styles.tableCell}>Y</div>
-          {Array.from({ length: 16 }).map((el, i) => (
-            <Fragment key={i}>
-              <div className={styles.tableCell}>{Math.floor(i / 8) % 2}</div>
-              <div className={styles.tableCell}>{Math.floor(i / 4) % 2}</div>
-              <div className={styles.tableCell}>{Math.floor(i / 2) % 2}</div>
-              <div className={styles.tableCell}>{i % 2}</div>
-              <div className={styles.tableCell}>Z</div>
-            </Fragment>
-          ))}
-        </div>
+        <TruthTable
+          elements={state.elements}
+          options={options}
+          onOptionsChange={(update) =>
+            setOptions({
+              ...options,
+              ...update,
+            })
+          }
+        />
         <div className={styles.debugPanel}>
           <div>elements: {state.elements.length}</div>
           <div>connections: {state.connections.length}</div>

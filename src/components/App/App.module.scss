@@ -43,34 +43,22 @@
 
 .info {
   display: none;
-  flex-basis: 300px;
-  padding: 16px 20px;
-  border-left: 1px solid #888;
-  background: #ddd;
-  overflow: hidden;
-  overflow-y: auto;
 
   @media (min-width: 768px) {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-basis: 300px;
+    padding: 16px 20px;
+    border-left: 1px solid #888;
+    background: #ddd;
+    overflow: hidden;
+    overflow-y: auto;
   }
 }
 
-.table {
-  display: grid;
-  grid-template-columns: repeat(5, 30px);
-}
-
-.tableCell {
-  text-align: center;
-  font-weight: 700;
-
-  &:nth-child(n + 6) {
-    font-weight: 400;
-  }
-
-  &:nth-child(5n) {
-    margin-left: 15px;
-  }
+.divider {
+  height: 8px;
 }
 
 .debugPanel {

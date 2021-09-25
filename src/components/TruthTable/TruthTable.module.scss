@@ -1,0 +1,27 @@
+.wrapper {
+  table {
+    thead > tr > th {
+      text-align: center;
+      font-weight: 700;
+    }
+
+    tbody > tr > td {
+      text-align: center;
+      font-weight: 400;
+    }
+  }
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.option {
+  user-select: none;
+
+  & > input:not(:disabled) {
+    cursor: pointer;
+  }
+}
