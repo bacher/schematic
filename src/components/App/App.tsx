@@ -345,16 +345,18 @@ export function App() {
   }
 
   function updateSize() {
-    const app = canvasWrapperRef.current!;
-    const canvas = canvasRef.current!;
+    setTimeout(() => {
+      const app = canvasWrapperRef.current!;
+      const canvas = canvasRef.current!;
 
-    size.width = app.clientWidth;
-    size.height = app.clientHeight;
+      size.width = app.clientWidth;
+      size.height = app.clientHeight;
 
-    canvas.width = size.width;
-    canvas.height = size.height;
+      canvas.width = size.width;
+      canvas.height = size.height;
 
-    draw();
+      draw();
+    }, 0);
   }
 
   function checkOverlap(point: Coords): boolean {

@@ -33,6 +33,7 @@
 
 .canvasWrapper {
   flex-grow: 1;
+  overflow: hidden;
 }
 
 .canvas {
@@ -41,10 +42,17 @@
 }
 
 .info {
+  display: none;
   flex-basis: 300px;
   padding: 16px 20px;
   border-left: 1px solid #888;
   background: #ddd;
+  overflow: hidden;
+  overflow-y: auto;
+
+  @media (min-width: 768px) {
+    display: block;
+  }
 }
 
 .table {
