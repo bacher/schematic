@@ -803,6 +803,9 @@ export function Game({ gameId }: Props) {
         >
           Clear
         </button>
+        <a href="#">
+          <button className={styles.button}>Exit</button>
+        </a>
       </div>
       <div className={styles.info}>
         <TruthTable
