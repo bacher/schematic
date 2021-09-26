@@ -15,6 +15,11 @@ export type Coords = {
   y: number;
 };
 
+export type Point = {
+  x: number;
+  y: number;
+};
+
 export type ElementId = `el${number}`;
 
 export type Element = {
