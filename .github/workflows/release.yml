@@ -25,6 +25,6 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'build/'
+          artifacts: 'build/*'
           artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
