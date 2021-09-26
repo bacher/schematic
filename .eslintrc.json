@@ -14,10 +14,16 @@
   "parserOptions": {
     "project": "./tsconfig.json"
   },
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  },
   "rules": {
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-shadow": "off",
     "eslint-comments/no-unused-disable": "error",
+    "import/no-unresolved": "error",
     "import/prefer-default-export": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "no-lonely-if": "off",

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 
-import { GameId } from '../../common/types';
-import { useOnChange } from '../../hooks/useOnChange';
-import { useWindowEvent } from '../../hooks/useWindowEvent';
-import { Emulator } from '../Emulator';
+import { GameId } from 'common/types';
+import { useOnChange } from 'hooks/useOnChange';
+import { useWindowEvent } from 'hooks/useWindowEvent';
+import { Emulator } from 'components/Emulator';
 
 import styles from './App.module.scss';
 

@@ -1,5 +1,5 @@
-import type { GameState } from '../../common/types';
-import { elementsDescriptions } from '../../common/data';
+import type { GameState } from 'common/types';
+import { elementsDescriptions } from 'common/data';
 
 import styles from './SchemaErrors.module.scss';
 

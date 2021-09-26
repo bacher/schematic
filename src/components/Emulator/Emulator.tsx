@@ -1,7 +1,9 @@
 import { MouseEvent, useEffect, useRef, useState } from 'react';
 
-import { useRefState } from '../../hooks/useRefState';
-import { useForceUpdate } from '../../hooks/useForceUpdate';
+import { useRefState } from 'hooks/useRefState';
+import { useForceUpdate } from 'hooks/useForceUpdate';
+import { useHandler } from 'hooks/useHandler';
+import { useOnChange } from 'hooks/useOnChange';
 import {
   Coords,
   Element,
@@ -10,16 +12,14 @@ import {
   GameId,
   GameState,
   Options,
-} from '../../common/types';
-import { elementsDescriptions } from '../../common/data';
-import { getLiteralForSignal } from '../../common/common';
-import { useFunc } from '../../hooks/useFunc';
-import { useOnChange } from '../../hooks/useOnChange';
-import { TruthTable } from '../TruthTable';
-import { SchemaErrors } from '../SchemaErrors';
+} from 'common/types';
+import { elementsDescriptions } from 'common/data';
+import { getLiteralForSignal } from 'common/common';
+import { getCanvasContext } from 'utils/canvas';
+import { TruthTable } from 'components/TruthTable';
+import { SchemaErrors } from 'components/SchemaErrors';
 
 import styles from './Emulator.module.scss';
-import { getCanvasContext } from '../../utils/canvas';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -126,7 +126,7 @@ export function Emulator({ gameId }: Props) {
     mouseState.isMouseDown = false;
   }
 
-  const loadGameState = useFunc(() => {
+  const loadGameState = useHandler(() => {
     const json = localStorage.getItem(`sch_game_${gameId}`);
 
     if (!json) {
@@ -168,7 +168,7 @@ export function Emulator({ gameId }: Props) {
     (window as any).state = state;
   }
 
-  const getElById = useFunc((id: ElementId): Element => {
+  const getElById = useHandler((id: ElementId): Element => {
     const el = state.elements.find((el) => el.id === id);
 
     if (!el) {
@@ -178,7 +178,7 @@ export function Emulator({ gameId }: Props) {
     return el;
   });
 
-  draw = useFunc(() => {
+  draw = useHandler(() => {
     const ctx = getCanvasContext(canvasRef.current);
 
     ctx.clearRect(0, 0, size.width, size.height);
@@ -547,7 +547,7 @@ export function Emulator({ gameId }: Props) {
     // );
   }
 
-  const onMouseUp = useFunc((e?: MouseEvent) => {
+  const onMouseUp = useHandler((e?: MouseEvent) => {
     if (e) {
       e.preventDefault();
 

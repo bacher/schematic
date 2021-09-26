@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { getLiteralForSignal } from '../../common/common';
-import { Element, ElementType, Options } from '../../common/types';
+
+import { getLiteralForSignal } from 'common/common';
+import { Element, ElementType, Options } from 'common/types';
 
 import styles from './TruthTable.module.scss';
 

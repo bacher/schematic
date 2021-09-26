@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 
-import { useFunc } from './useFunc';
+import { useHandler } from 'hooks/useHandler';
 
 export function useWindowEvent(
   eventName: string,
   callback: (...args: unknown[]) => void,
 ) {
-  const func = useFunc(callback);
+  const func = useHandler(callback);
 
   useEffect(() => {
     window.addEventListener(eventName, func, false);
