@@ -5,6 +5,7 @@ import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
 import { useHandler } from 'hooks/useHandler';
 import { useOnChange } from 'hooks/useOnChange';
+import { useWindowEvent } from 'hooks/useWindowEvent';
 import {
   Coords,
   Element,
@@ -21,7 +22,6 @@ import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 
 import styles from './Emulator.module.scss';
-import { useWindowEvent } from '../../hooks/useWindowEvent';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -78,6 +78,7 @@ type AssetSet = {
 type Props = {
   gameId: GameId;
 };
+
 export function Emulator({ gameId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -198,6 +199,10 @@ export function Emulator({ gameId }: Props) {
   });
 
   draw = useHandler(() => {
+    if (size.width === 0) {
+      return;
+    }
+
     const ctx = getCanvasContext(canvasRef.current);
 
     actualizeDensityFactor();
@@ -206,14 +211,45 @@ export function Emulator({ gameId }: Props) {
     ctx.save();
     ctx.clearRect(0, 0, size.width * factor, size.height * factor);
 
-    if (factor === 1) {
-      // used to disable antialiasing for horizontal and vertical lines
-      ctx.translate(0.5, 0.5);
-    } else {
+    if (factor !== 1) {
       ctx.scale(factor, factor);
     }
 
-    ctx.translate(size.width / 2 + pos.x, size.height / 2 + pos.y);
+    ctx.translate(
+      Math.floor(size.width / 2) + pos.x,
+      Math.floor(size.height / 2) + pos.y,
+    );
+
+    ctx.save();
+
+    ctx.lineWidth = 1;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.font = '15px sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+    ctx.moveTo(95, -5);
+    ctx.lineTo(100, 0);
+    ctx.moveTo(95, 5);
+    ctx.lineTo(100, 0);
+    ctx.strokeStyle = '#0f0';
+    ctx.stroke();
+    ctx.fillText('X', 90, 15);
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 100);
+    ctx.moveTo(-5, 95);
+    ctx.lineTo(0, 100);
+    ctx.moveTo(5, 95);
+    ctx.lineTo(0, 100);
+    ctx.strokeStyle = '#00f';
+    ctx.stroke();
+    ctx.fillText('Y', 12, 90);
+
+    ctx.restore();
 
     for (const element of state.elements) {
       const { pos } = element;
@@ -470,6 +506,9 @@ export function Emulator({ gameId }: Props) {
       size.width = app.clientWidth;
       size.height = app.clientHeight;
 
+      canvas.width = size.width * densityFactor.factor;
+      canvas.height = size.height * densityFactor.factor;
+
       draw();
     }
   }
@@ -686,8 +725,8 @@ export function Emulator({ gameId }: Props) {
           className={cn(styles.canvas, {
             [styles.canvasScale]: densityFactor.factor !== 1,
           })}
-          width={size.width * densityFactor.factor}
-          height={size.height * densityFactor.factor}
+          width={0}
+          height={0}
           style={
             {
               '--factor': 1 / densityFactor.factor,
