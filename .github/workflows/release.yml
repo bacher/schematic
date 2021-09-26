@@ -2,9 +2,8 @@ name: Build
 
 on:
   push:
-    branches: [main]
-
-  workflow_dispatch:
+    tags:
+    - '*'
 
 jobs:
   build:
@@ -21,11 +20,12 @@ jobs:
       - name: Build
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: build-release
+          cmd: build:ci
 
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.4
+      - name: Release
+        uses: ncipollo/release-action@v1
         with:
-          name: build.zip
-          path: build/
-          if-no-files-found: error
+          artifacts: 'build/'
+          bodyFile: 'body.md'
+          artifactErrorsFailBuild: true
+          token: ${{ secrets.GITHUB_TOKEN }}

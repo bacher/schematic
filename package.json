@@ -5,7 +5,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "build-release": "yarn test && yarn build",
+    "build:ci": "yarn test && yarn build",
     "deduplicate": "npx yarn-deduplicate",
     "test": "yarn test:types && yarn lint",
     "test:types": "tsc --noEmit --project tsconfig.json",
