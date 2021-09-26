@@ -12,11 +12,6 @@
     "test:types": "tsc --noEmit --project tsconfig.json",
     "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
