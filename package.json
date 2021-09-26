@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "build:ci": "CI=yes NODE_ENV=production yarn test && yarn build",
+    "build": "NODE_ENV=production react-scripts build",
+    "build:ci": "CI=yes yarn test && yarn build",
     "build:release": "yarn build:ci && mkdir -p artifacts && cd build && tar -zcf \"../artifacts/release_${npm_package_version}.tar.gz\" .",
+    "build:pages": "PUBLIC_URL='/schematic/' yarn build",
     "deduplicate": "npx yarn-deduplicate",
     "test": "yarn test:types && yarn lint",
     "test:types": "tsc --noEmit --project tsconfig.json",
