@@ -1,4 +1,5 @@
-import { MouseEvent, useEffect, useRef, useState } from 'react';
+import { CSSProperties, MouseEvent, useEffect, useRef, useState } from 'react';
+import cn from 'classnames';
 
 import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
@@ -20,6 +21,7 @@ import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 
 import styles from './Emulator.module.scss';
+import { useWindowEvent } from '../../hooks/useWindowEvent';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -62,10 +64,20 @@ function yesNo(value: unknown) {
   return <span className={styles.no}>no</span>;
 }
 
+enum LoadingStatus {
+  NONE,
+  LOADING,
+  DONE,
+}
+
+type AssetSet = {
+  images: Record<string, HTMLImageElement>;
+  status: LoadingStatus;
+};
+
 type Props = {
   gameId: GameId;
 };
-
 export function Emulator({ gameId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -75,10 +87,17 @@ export function Emulator({ gameId }: Props) {
     isInputVector: false,
     isOutputVector: false,
   });
+  const densityFactor = useRefState({ factor: window.devicePixelRatio ?? 1 });
 
   const size = useRefState({ width: 0, height: 0 });
   const pos = useRefState({ x: 0, y: 0 });
-  const assets = useRefState<Record<string, HTMLImageElement>>({});
+  const assets = useRefState<{
+    x1: AssetSet;
+    x2: AssetSet;
+  }>({
+    x1: { images: {}, status: LoadingStatus.NONE },
+    x2: { images: {}, status: LoadingStatus.NONE },
+  });
   const mousePos = useRefState({ x: 0, y: 0 });
   const hoverElement = useRefState<{
     target: HoverTarget | undefined;
@@ -181,10 +200,20 @@ export function Emulator({ gameId }: Props) {
   draw = useHandler(() => {
     const ctx = getCanvasContext(canvasRef.current);
 
-    ctx.clearRect(0, 0, size.width, size.height);
+    actualizeDensityFactor();
+    const { factor } = densityFactor;
 
     ctx.save();
-    ctx.translate(size.width / 2 + pos.x + 0.5, size.height / 2 + pos.y + 0.5);
+    ctx.clearRect(0, 0, size.width * factor, size.height * factor);
+
+    if (factor === 1) {
+      // used to disable antialiasing for horizontal and vertical lines
+      ctx.translate(0.5, 0.5);
+    } else {
+      ctx.scale(factor, factor);
+    }
+
+    ctx.translate(size.width / 2 + pos.x, size.height / 2 + pos.y);
 
     for (const element of state.elements) {
       const { pos } = element;
@@ -279,7 +308,10 @@ export function Emulator({ gameId }: Props) {
         }
         ctx.restore();
       } else {
-        const img = assets[type];
+        const [main, fallback]: ['x1', 'x2'] | ['x2', 'x1'] =
+          factor > 1.5 ? ['x2', 'x1'] : ['x1', 'x2'];
+
+        const img = assets[main].images[type] ?? assets[fallback].images[type];
 
         if (img) {
           const x0 = pos.x - ICON_SIZE / 2;
@@ -417,23 +449,29 @@ export function Emulator({ gameId }: Props) {
     return false;
   }
 
+  function actualizeDensityFactor() {
+    const factor = window.devicePixelRatio ?? 1;
+
+    if (densityFactor.factor !== factor) {
+      densityFactor.factor = factor;
+      forceUpdate();
+    }
+  }
+
   function updateSize() {
-    setTimeout(() => {
-      const app = canvasWrapperRef.current;
-      const canvas = canvasRef.current;
+    const app = canvasWrapperRef.current;
+    const canvas = canvasRef.current;
 
-      if (!app || !canvas) {
-        throw new Error();
-      }
+    if (!app || !canvas) {
+      throw new Error();
+    }
 
+    if (size.width !== app.clientWidth || size.height !== app.clientHeight) {
       size.width = app.clientWidth;
       size.height = app.clientHeight;
 
-      canvas.width = size.width;
-      canvas.height = size.height;
-
       draw();
-    }, 0);
+    }
   }
 
   function checkOverlap(point: Coords): boolean {
@@ -468,6 +506,14 @@ export function Emulator({ gameId }: Props) {
   }
 
   function loadAssets() {
+    const is2x = densityFactor.factor > 1.5;
+
+    const assetsSet = assets[is2x ? 'x1' : 'x2'];
+
+    if (assetsSet.status !== LoadingStatus.NONE) {
+      return;
+    }
+
     const loadImages = [
       ElementType.PNP,
       ElementType.NPN,
@@ -481,27 +527,38 @@ export function Emulator({ gameId }: Props) {
       remainLoad -= 1;
 
       if (remainLoad === 0) {
+        assetsSet.status = LoadingStatus.DONE;
         draw();
       }
     }
 
+    assetsSet.status = LoadingStatus.LOADING;
+
     for (const imgName of loadImages) {
       const image = new Image();
-      image.src = `assets/${imgName}.png`;
-      image.addEventListener('load', onLoad);
-
-      assets[imgName] = image;
+      image.src = `assets/${imgName}${is2x ? '@2x' : ''}.png`;
+      image.addEventListener('load', () => {
+        assetsSet.images[imgName] = image;
+        onLoad();
+      });
+      image.addEventListener('error', onLoad);
     }
   }
 
   useEffect(() => {
     updateSize();
-
-    window.addEventListener('resize', updateSize);
-
     loadAssets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useOnChange(loadAssets, [densityFactor.factor]);
+
+  useWindowEvent('resize', () => {
+    setTimeout(() => {
+      actualizeDensityFactor();
+      updateSize();
+    }, 0);
+  });
 
   useOnChange(draw, [options]);
 
@@ -626,8 +683,17 @@ export function Emulator({ gameId }: Props) {
       <div ref={canvasWrapperRef} className={styles.canvasWrapper}>
         <canvas
           ref={canvasRef}
-          className={styles.canvas}
-          style={cursor ? { cursor } : undefined}
+          className={cn(styles.canvas, {
+            [styles.canvasScale]: densityFactor.factor !== 1,
+          })}
+          width={size.width * densityFactor.factor}
+          height={size.height * densityFactor.factor}
+          style={
+            {
+              '--factor': 1 / densityFactor.factor,
+              cursor,
+            } as CSSProperties
+          }
           onClick={(e) => {
             e.preventDefault();
           }}
