@@ -20,11 +20,11 @@ jobs:
       - name: Build
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: build:ci
+          cmd: build:release
 
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'build/*'
+          artifacts: 'artifacts/*'
           artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
