@@ -1,5 +1,6 @@
 # Schematic
 
+[![Release](https://github.com/Bacher/schematic/actions/workflows/release.yml/badge.svg)](https://github.com/Bacher/schematic/actions/workflows/release.yml)
 [![Test](https://github.com/Bacher/schematic/actions/workflows/test.yml/badge.svg)](https://github.com/Bacher/schematic/actions/workflows/test.yml)
 
 Transistor level schema physical simulator.
