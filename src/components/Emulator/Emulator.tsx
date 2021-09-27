@@ -37,11 +37,6 @@ type Cursor =
   | 'cross'
   | undefined;
 
-type HoverTarget = {
-  elId: ElementId;
-  activePin: { index: number } | undefined;
-};
-
 function subtract(p1: Point, p2: Point): Point {
   return {
     x: p1.x - p2.x,
@@ -93,6 +88,11 @@ type AssetSet = {
   status: LoadingStatus;
 };
 
+enum NodeType {
+  ELEMENT,
+  CONNECTION,
+}
+
 type Props = {
   gameId: GameId;
 };
@@ -119,18 +119,32 @@ export function Emulator({ gameId }: Props) {
   });
   const mousePos = useRefState({ x: 0, y: 0 });
   const hoverElement = useRefState<{
-    target: HoverTarget | undefined;
+    target:
+      | {
+          type: NodeType.ELEMENT;
+          elId: ElementId;
+          activePin: { index: number } | undefined;
+        }
+      | {
+          type: NodeType.CONNECTION;
+          connectionIndex: number;
+        }
+      | undefined;
   }>({
     target: undefined,
   });
-  const hoverConnection = useRefState<{
-    target: { index: number } | undefined;
-  }>({
-    target: undefined,
-  });
-  const focusElement = useRefState<{ elId: ElementId | undefined }>({
-    elId: undefined,
-  });
+  const focusElement = useRefState<{
+    target:
+      | {
+          type: NodeType.ELEMENT;
+          elId: ElementId;
+        }
+      | {
+          type: NodeType.CONNECTION;
+          connectionIndex: number;
+        }
+      | undefined;
+  }>({ target: undefined });
   const movingElement = useRefState<{
     target: { elId: ElementId } | undefined;
   }>({
@@ -163,10 +177,9 @@ export function Emulator({ gameId }: Props) {
     state.elements = [];
     state.connections = [];
     hoverElement.target = undefined;
-    focusElement.elId = undefined;
+    focusElement.target = undefined;
     movingElement.target = undefined;
     wireElement.source = undefined;
-    hoverConnection.target = undefined;
     panState.isPan = false;
     mouseState.isMouseDown = false;
   }
@@ -233,6 +246,8 @@ export function Emulator({ gameId }: Props) {
     actualizeDensityFactor();
     const { factor } = densityFactor;
 
+    const hoverTarget = hoverElement.target;
+
     ctx.save();
     ctx.clearRect(0, 0, size.width * factor, size.height * factor);
 
@@ -279,7 +294,11 @@ export function Emulator({ gameId }: Props) {
     for (const element of state.elements) {
       const { pos } = element;
 
-      if (element.id === hoverElement.target?.elId) {
+      if (
+        hoverTarget &&
+        hoverTarget.type === NodeType.ELEMENT &&
+        element.id === hoverTarget.elId
+      ) {
         ctx.save();
         ctx.strokeStyle = '#ddf';
         ctx.lineWidth = 3;
@@ -290,7 +309,11 @@ export function Emulator({ gameId }: Props) {
           FOCUS_SIZE,
         );
         ctx.restore();
-      } else if (element.id === focusElement.elId) {
+      } else if (
+        focusElement.target &&
+        focusElement.target.type === NodeType.ELEMENT &&
+        focusElement.target.elId === element.id
+      ) {
         ctx.save();
         ctx.strokeStyle = '#ededf3';
         ctx.lineWidth = 2;
@@ -322,8 +345,20 @@ export function Emulator({ gameId }: Props) {
         el2.pos.x - ICON_SIZE / 2 + pin2.pos.x * ICON_SIZE,
         el2.pos.y - ICON_SIZE / 2 + pin2.pos.y * ICON_SIZE,
       );
-      ctx.lineWidth = hoverConnection.target?.index === index ? 3 : 1;
-      ctx.strokeStyle = '#333';
+
+      const isHovered =
+        hoverTarget &&
+        hoverTarget.type === NodeType.CONNECTION &&
+        hoverTarget.connectionIndex === index;
+
+      const isInFocus =
+        focusElement.target &&
+        focusElement.target.type === NodeType.CONNECTION &&
+        focusElement.target.connectionIndex === index;
+
+      ctx.lineWidth = isHovered || isInFocus ? 3 : 1;
+      ctx.strokeStyle = isInFocus ? '#00f' : '#333';
+
       ctx.stroke();
       ctx.restore();
 
@@ -387,13 +422,13 @@ export function Emulator({ gameId }: Props) {
       }
 
       const { pins } = elementsDescriptions[type];
-      const hoverTarget = hoverElement.target;
       let i = 0;
 
       for (const pin of pins) {
-        const isActive =
+        const isHovered =
           hoverTarget &&
-          element.id === hoverTarget.elId &&
+          hoverTarget.type === NodeType.ELEMENT &&
+          hoverTarget.elId === element.id &&
           hoverTarget.activePin &&
           hoverTarget.activePin.index === i;
 
@@ -406,13 +441,13 @@ export function Emulator({ gameId }: Props) {
         ctx.arc(
           pos.x + (pin.pos.x - 0.5) * ICON_SIZE,
           pos.y + (pin.pos.y - 0.5) * ICON_SIZE,
-          isActive ? PIN_DOT_RADIUS + 1 : PIN_DOT_RADIUS,
+          isHovered ? PIN_DOT_RADIUS + 1 : PIN_DOT_RADIUS,
           0,
           Math.PI * 2,
         );
         ctx.closePath();
 
-        if (isActive || isWire) {
+        if (isHovered || isWire) {
           ctx.save();
           ctx.fillStyle = isWire ? '#d66' : '#66d';
           ctx.fill();
@@ -436,13 +471,18 @@ export function Emulator({ gameId }: Props) {
 
     if (wireElement.source) {
       currentCursor = 'pointer';
-    } else if (hoverElement.target?.activePin) {
-      currentCursor = 'pointer';
-    } else if (hoverElement.target) {
-      currentCursor = 'move';
-    } else if (panState.isPan) {
-      currentCursor = 'grabbing';
-    }
+    } else if (hoverTarget)
+      if (hoverTarget.type === NodeType.CONNECTION) {
+        currentCursor = 'move';
+      } else if (hoverTarget.type === NodeType.ELEMENT) {
+        if (hoverTarget.activePin) {
+          currentCursor = 'pointer';
+        } else {
+          currentCursor = 'move';
+        }
+      } else if (panState.isPan) {
+        currentCursor = 'grabbing';
+      }
 
     if (currentCursor !== cursor) {
       setCursor(currentCursor);
@@ -491,10 +531,12 @@ export function Emulator({ gameId }: Props) {
           // before set check if already hovered
           if (
             !hoverTarget ||
+            hoverTarget.type !== NodeType.ELEMENT ||
             hoverTarget.elId !== element.id ||
             hoverTarget.activePin?.index !== pinIndex
           ) {
             hoverElement.target = {
+              type: NodeType.ELEMENT,
               elId: element.id,
               activePin: {
                 index: pinIndex,
@@ -517,10 +559,12 @@ export function Emulator({ gameId }: Props) {
           // before set check if already hovered
           if (
             !hoverTarget ||
+            hoverTarget.type !== NodeType.ELEMENT ||
             hoverTarget.elId !== element.id ||
             hoverTarget.activePin
           ) {
             hoverElement.target = {
+              type: NodeType.ELEMENT,
               elId: element.id,
               activePin: undefined,
             };
@@ -559,10 +603,14 @@ export function Emulator({ gameId }: Props) {
 
           // before set check if already hovered
           if (
-            !hoverConnection.target ||
-            hoverConnection.target.index !== connectionIndex
+            !hoverTarget ||
+            hoverTarget.type !== NodeType.CONNECTION ||
+            hoverTarget.connectionIndex !== connectionIndex
           ) {
-            hoverConnection.target = { index: connectionIndex };
+            hoverElement.target = {
+              type: NodeType.CONNECTION,
+              connectionIndex,
+            };
             flag = true;
           }
           hoverConnectionFound = true;
@@ -571,16 +619,9 @@ export function Emulator({ gameId }: Props) {
       }
     }
 
-    if (!hoverFound) {
+    if (!hoverFound && !hoverConnectionFound) {
       if (hoverElement.target) {
         hoverElement.target = undefined;
-        flag = true;
-      }
-    }
-
-    if (!hoverConnectionFound) {
-      if (hoverConnection.target) {
-        hoverConnection.target = undefined;
         flag = true;
       }
     }
@@ -736,14 +777,11 @@ export function Emulator({ gameId }: Props) {
     elId: ElementId;
     pinIndex: number;
   }) {
-    focusElement.elId = elId;
+    focusElement.target = { type: NodeType.ELEMENT, elId };
     wireElement.source = {
       elId,
       pinIndex,
     };
-    // state.connections = state.connections.filter(
-    //   ([p1, p2]) => p1.elId !== elId && p2.elId !== elId,
-    // );
   }
 
   const onMouseUp = useHandler((e?: MouseEvent) => {
@@ -759,8 +797,14 @@ export function Emulator({ gameId }: Props) {
 
     mouseState.isMouseDown = false;
 
-    if (focusElement.elId && !wireElement.source && !movingElement.target) {
-      focusElement.elId = undefined;
+    // TODO: Why focus resetting here?
+    if (
+      focusElement.target &&
+      focusElement.target.type === NodeType.ELEMENT &&
+      !wireElement.source &&
+      !movingElement.target
+    ) {
+      focusElement.target = undefined;
       needRepaint = true;
     }
 
@@ -779,6 +823,7 @@ export function Emulator({ gameId }: Props) {
 
       if (
         hoverTarget &&
+        hoverTarget.type === NodeType.ELEMENT &&
         hoverTarget.activePin &&
         wireElement.source.elId !== hoverTarget.elId
       ) {
@@ -799,7 +844,11 @@ export function Emulator({ gameId }: Props) {
     } else if (!wireElement.source) {
       const hoverTarget = hoverElement.target;
 
-      if (hoverTarget && hoverTarget.activePin) {
+      if (
+        hoverTarget &&
+        hoverTarget.type === NodeType.ELEMENT &&
+        hoverTarget.activePin
+      ) {
         startWiring({
           elId: hoverTarget.elId,
           pinIndex: hoverTarget.activePin.index,
@@ -807,10 +856,31 @@ export function Emulator({ gameId }: Props) {
         needRepaint = true;
       }
 
-      if (hoverTarget && !hoverTarget.activePin) {
-        if (focusElement.elId !== hoverTarget.elId) {
-          focusElement.elId = hoverTarget.elId;
-          needRepaint = true;
+      if (hoverTarget) {
+        if (hoverTarget.type === NodeType.ELEMENT && !hoverTarget.activePin) {
+          if (
+            !focusElement.target ||
+            focusElement.target.type !== NodeType.ELEMENT ||
+            focusElement.target.elId !== hoverTarget.elId
+          ) {
+            focusElement.target = {
+              type: NodeType.ELEMENT,
+              elId: hoverTarget.elId,
+            };
+            needRepaint = true;
+          }
+        } else if (hoverTarget.type === NodeType.CONNECTION) {
+          if (
+            !focusElement.target ||
+            focusElement.target.type !== NodeType.CONNECTION ||
+            focusElement.target.connectionIndex !== hoverTarget.connectionIndex
+          ) {
+            focusElement.target = {
+              type: NodeType.CONNECTION,
+              connectionIndex: hoverTarget.connectionIndex,
+            };
+            needRepaint = true;
+          }
         }
       }
     }
@@ -870,6 +940,7 @@ export function Emulator({ gameId }: Props) {
                 !isMoving &&
                 !wireElement.source &&
                 hoverTarget &&
+                hoverTarget.type === NodeType.ELEMENT &&
                 hoverTarget.activePin
               ) {
                 startWiring({
@@ -883,11 +954,19 @@ export function Emulator({ gameId }: Props) {
                 needRepaint = true;
               }
 
-              if (!isMoving && !wireElement.source && hoverTarget) {
+              if (
+                !isMoving &&
+                !wireElement.source &&
+                hoverTarget &&
+                hoverTarget.type === NodeType.ELEMENT
+              ) {
                 movingElement.target = {
                   elId: hoverTarget.elId,
                 };
-                focusElement.elId = hoverTarget.elId;
+                focusElement.target = {
+                  type: NodeType.ELEMENT,
+                  elId: hoverTarget.elId,
+                };
                 needRepaint = true;
               }
 
@@ -1075,10 +1154,42 @@ export function Emulator({ gameId }: Props) {
           <div>elements: {state.elements.length}</div>
           <div>connections: {state.connections.length}</div>
           <div>el moving: {yesNo(movingElement.target)}</div>
-          <div>el in focus: {yesNo(focusElement.elId)}</div>
-          <div>el hover: {yesNo(hoverElement.target)}</div>
-          <div>pin hover: {yesNo(hoverElement.target?.activePin)}</div>
-          <div>conn hover: {yesNo(hoverConnection.target)}</div>
+          <div>
+            el in focus:{' '}
+            {yesNo(
+              focusElement.target &&
+                focusElement.target.type === NodeType.ELEMENT,
+            )}
+          </div>
+          <div>
+            conn in focus:{' '}
+            {yesNo(
+              focusElement.target &&
+                focusElement.target.type === NodeType.CONNECTION,
+            )}
+          </div>
+          <div>
+            el hover:{' '}
+            {yesNo(
+              hoverElement.target &&
+                hoverElement.target.type === NodeType.ELEMENT,
+            )}
+          </div>
+          <div>
+            pin hover:{' '}
+            {yesNo(
+              hoverElement.target &&
+                hoverElement.target.type === NodeType.ELEMENT &&
+                hoverElement.target.activePin,
+            )}
+          </div>
+          <div>
+            conn hover:{' '}
+            {yesNo(
+              hoverElement.target &&
+                hoverElement.target.type === NodeType.CONNECTION,
+            )}
+          </div>
           <div>wiring: {yesNo(wireElement.source)}</div>
           <div>drag: {yesNo(panState.isPan)}</div>
           <div>mouse down: {yesNo(mouseState.isMouseDown)}</div>
