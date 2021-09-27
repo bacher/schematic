@@ -145,7 +145,8 @@ export function Emulator({ gameId }: Props) {
     elements: [],
     connections: [],
   });
-  const mouseState = useRefState({ isMouseDown: false, isDrag: false });
+  const mouseState = useRefState({ isMouseDown: false });
+  const panState = useRefState({ isPan: false });
 
   function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
     return {
@@ -166,7 +167,7 @@ export function Emulator({ gameId }: Props) {
     movingElement.target = undefined;
     wireElement.source = undefined;
     hoverConnection.target = undefined;
-    mouseState.isDrag = false;
+    panState.isPan = false;
     mouseState.isMouseDown = false;
   }
 
@@ -386,15 +387,15 @@ export function Emulator({ gameId }: Props) {
       }
 
       const { pins } = elementsDescriptions[type];
-      const activeTarget = hoverElement.target;
+      const hoverTarget = hoverElement.target;
       let i = 0;
 
       for (const pin of pins) {
         const isActive =
-          activeTarget &&
-          element.id === activeTarget.elId &&
-          activeTarget.activePin &&
-          activeTarget.activePin.index === i;
+          hoverTarget &&
+          element.id === hoverTarget.elId &&
+          hoverTarget.activePin &&
+          hoverTarget.activePin.index === i;
 
         const isWire =
           wireElement.source &&
@@ -439,7 +440,7 @@ export function Emulator({ gameId }: Props) {
       currentCursor = 'pointer';
     } else if (hoverElement.target) {
       currentCursor = 'move';
-    } else if (mouseState.isDrag) {
+    } else if (panState.isPan) {
       currentCursor = 'grabbing';
     }
 
@@ -715,8 +716,8 @@ export function Emulator({ gameId }: Props) {
       needRepaint = true;
     }
 
-    if (mouseState.isDrag) {
-      mouseState.isDrag = false;
+    if (panState.isPan) {
+      panState.isPan = false;
       needRepaint = true;
     }
 
@@ -768,23 +769,23 @@ export function Emulator({ gameId }: Props) {
       needRepaint = true;
     }
 
-    if (mouseState.isDrag) {
-      mouseState.isDrag = false;
+    if (panState.isPan) {
+      panState.isPan = false;
       needRepaint = true;
     }
 
     if (wireElement.source) {
-      const activeTarget = hoverElement.target;
+      const hoverTarget = hoverElement.target;
 
       if (
-        activeTarget &&
-        activeTarget.activePin &&
-        wireElement.source.elId !== activeTarget.elId
+        hoverTarget &&
+        hoverTarget.activePin &&
+        wireElement.source.elId !== hoverTarget.elId
       ) {
         state.connections.push([
           {
-            elId: activeTarget.elId,
-            pinIndex: activeTarget.activePin.index,
+            elId: hoverTarget.elId,
+            pinIndex: hoverTarget.activePin.index,
           },
           {
             elId: wireElement.source.elId,
@@ -893,9 +894,9 @@ export function Emulator({ gameId }: Props) {
               if (
                 !wireElement.source &&
                 !movingElement.target &&
-                !mouseState.isDrag
+                !panState.isPan
               ) {
-                mouseState.isDrag = true;
+                panState.isPan = true;
                 needRepaint = true;
               }
 
@@ -910,8 +911,8 @@ export function Emulator({ gameId }: Props) {
 
               needRepaint = true;
             } else {
-              if (mouseState.isDrag) {
-                mouseState.isDrag = false;
+              if (panState.isPan) {
+                panState.isPan = false;
                 needRepaint = true;
               }
             }
@@ -931,11 +932,7 @@ export function Emulator({ gameId }: Props) {
             }
           }}
           onContextMenu={(e) => {
-            if (
-              hoverElement.target ||
-              wireElement.source ||
-              mouseState.isDrag
-            ) {
+            if (hoverElement.target || wireElement.source || panState.isPan) {
               e.preventDefault();
             }
           }}
@@ -1083,7 +1080,7 @@ export function Emulator({ gameId }: Props) {
           <div>pin hover: {yesNo(hoverElement.target?.activePin)}</div>
           <div>conn hover: {yesNo(hoverConnection.target)}</div>
           <div>wiring: {yesNo(wireElement.source)}</div>
-          <div>drag: {yesNo(mouseState.isDrag)}</div>
+          <div>drag: {yesNo(panState.isPan)}</div>
           <div>mouse down: {yesNo(mouseState.isMouseDown)}</div>
         </div>
       </div>
