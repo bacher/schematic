@@ -236,6 +236,33 @@ export function Emulator({ gameId }: Props) {
     return el;
   });
 
+  const deleteElementInFocus = useHandler(() => {
+    const focusTarget = focusElement.target;
+
+    if (!focusTarget) {
+      return;
+    }
+
+    switch (focusTarget.type) {
+      case NodeType.ELEMENT:
+        state.connections = state.connections.filter(
+          ([p1, p2]) =>
+            p1.elId !== focusTarget.elId && p2.elId !== focusTarget.elId,
+        );
+
+        state.elements = state.elements.filter(
+          (el) => el.id !== focusTarget.elId,
+        );
+        break;
+      case NodeType.CONNECTION:
+        state.connections.splice(focusTarget.connectionIndex, 1);
+        break;
+    }
+
+    focusElement.target = undefined;
+    draw();
+  });
+
   draw = useHandler(() => {
     if (size.width === 0) {
       return;
@@ -294,29 +321,27 @@ export function Emulator({ gameId }: Props) {
     for (const element of state.elements) {
       const { pos } = element;
 
-      if (
+      const isHover =
         hoverTarget &&
         hoverTarget.type === NodeType.ELEMENT &&
-        element.id === hoverTarget.elId
-      ) {
-        ctx.save();
-        ctx.strokeStyle = '#ddf';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(
-          pos.x - FOCUS_SIZE / 2,
-          pos.y - FOCUS_SIZE / 2,
-          FOCUS_SIZE,
-          FOCUS_SIZE,
-        );
-        ctx.restore();
-      } else if (
+        element.id === hoverTarget.elId;
+
+      const isFocus =
         focusElement.target &&
         focusElement.target.type === NodeType.ELEMENT &&
-        focusElement.target.elId === element.id
-      ) {
+        focusElement.target.elId === element.id;
+
+      if (isHover || isFocus) {
         ctx.save();
-        ctx.strokeStyle = '#ededf3';
-        ctx.lineWidth = 2;
+
+        if (isHover) {
+          ctx.strokeStyle = isFocus ? '#7f7fff' : '#e5e5e5';
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = '#bebeff';
+          ctx.lineWidth = 2;
+        }
+
         ctx.strokeRect(
           pos.x - FOCUS_SIZE / 2,
           pos.y - FOCUS_SIZE / 2,
@@ -357,7 +382,14 @@ export function Emulator({ gameId }: Props) {
         focusElement.target.connectionIndex === index;
 
       ctx.lineWidth = isHovered || isInFocus ? 3 : 1;
-      ctx.strokeStyle = isInFocus ? '#00f' : '#333';
+
+      if (isHovered && isInFocus) {
+        ctx.strokeStyle = '#8080ff';
+      } else if (isInFocus) {
+        ctx.strokeStyle = '#bfbfff';
+      } else {
+        ctx.strokeStyle = '#333';
+      }
 
       ctx.stroke();
       ctx.restore();
@@ -1087,6 +1119,18 @@ export function Emulator({ gameId }: Props) {
           }}
         >
           dot
+        </button>
+        <span className={styles.divider} />
+        <button
+          type="button"
+          disabled={!focusElement.target}
+          className={styles.button}
+          onClick={(e) => {
+            e.preventDefault();
+            deleteElementInFocus();
+          }}
+        >
+          delete
         </button>
         <span className={styles.divider} />
         <button

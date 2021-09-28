@@ -28,7 +28,14 @@
   background: #dadada;
   white-space: nowrap;
   appearance: none;
-  cursor: pointer;
+
+  &:disabled {
+    color: #999;
+  }
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 .canvasWrapper {
