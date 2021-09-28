@@ -1,7 +1,11 @@
+import { styled } from 'stitches';
+
 import type { GameState } from 'common/types';
 import { elementsDescriptions } from 'common/data';
 
-import styles from './SchemaErrors.module.scss';
+const _Title = styled('h2', {
+  margin: 0,
+});
 
 type Props = {
   state: GameState;
@@ -33,7 +37,7 @@ export function SchemaErrors({ state }: Props) {
 
   return (
     <div>
-      <h2 className={styles.title}>Errors:</h2>
+      <_Title>Errors:</_Title>
       {errors.map((line, i) => (
         <div key={i}>{line}</div>
       ))}

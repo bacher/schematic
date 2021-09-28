@@ -1,11 +1,26 @@
 import { useMemo, useState } from 'react';
+import { styled } from 'stitches';
 
 import { GameId } from 'common/types';
 import { useOnChange } from 'hooks/useOnChange';
 import { useWindowEvent } from 'hooks/useWindowEvent';
 import { Emulator } from 'components/Emulator';
 
-import styles from './App.module.scss';
+const _Wrapper = styled('div', {
+  padding: 16,
+});
+
+const _Title = styled('h1', {
+  margin: 0,
+});
+
+const _GameTitle = styled('h2', {
+  fontVariant: '18|24',
+});
+
+const _RemoveButton = styled('button', {
+  marginLeft: 16,
+});
 
 function getCurrentGameId(allowedIds: GameId[]): GameId | undefined {
   const hash = (window.location.hash ?? '').trim().replace(/^#/, '');
@@ -72,17 +87,16 @@ export function App() {
   }
 
   return (
-    <div className={styles.wrapper}>
-      <h1 className={styles.title}>Schematic</h1>
-      <h2 className={styles.gamesTitle}>Current schemas:</h2>
+    <_Wrapper>
+      <_Title>Schematic</_Title>
+      <_GameTitle>Current schemas:</_GameTitle>
       <ul>
         {currentGames.length ? (
           currentGames.map((gameId) => (
             <li key={gameId}>
               <a href={`#${gameId}`}>{gameId}</a>{' '}
-              <button
+              <_RemoveButton
                 type="button"
-                className={styles.removeButton}
                 onClick={(e) => {
                   e.preventDefault();
 
@@ -94,7 +108,7 @@ export function App() {
                 }}
               >
                 x
-              </button>
+              </_RemoveButton>
             </li>
           ))
         ) : (
@@ -115,6 +129,6 @@ export function App() {
       >
         New schema
       </button>
-    </div>
+    </_Wrapper>
   );
 }

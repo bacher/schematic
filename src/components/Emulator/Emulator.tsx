@@ -1,5 +1,4 @@
 import { CSSProperties, MouseEvent, useEffect, useRef, useState } from 'react';
-import cn from 'classnames';
 
 import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
@@ -22,7 +21,18 @@ import { getCanvasContext } from 'utils/canvas';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 
-import styles from './Emulator.module.scss';
+import {
+  _App,
+  _Panel,
+  _Button,
+  _CanvasWrapper,
+  _Canvas,
+  _Divider,
+  _Space,
+  _Yes,
+  _No,
+  _Info,
+} from './elements';
 
 const ICON_SIZE = 48;
 const FOCUS_SIZE = ICON_SIZE + 4;
@@ -72,9 +82,9 @@ function getNextId(state: GameState): ElementId {
 
 function yesNo(value: unknown) {
   if (value) {
-    return <span className={styles.yes}>yes</span>;
+    return <_Yes>yes</_Yes>;
   }
-  return <span className={styles.no}>no</span>;
+  return <_No>no</_No>;
 }
 
 enum LoadingStatus {
@@ -923,13 +933,11 @@ export function Emulator({ gameId }: Props) {
   });
 
   return (
-    <main className={styles.app}>
-      <div ref={canvasWrapperRef} className={styles.canvasWrapper}>
-        <canvas
+    <_App>
+      <_CanvasWrapper ref={canvasWrapperRef}>
+        <_Canvas
           ref={canvasRef}
-          className={cn(styles.canvas, {
-            [styles.canvasScale]: densityFactor.factor !== 1,
-          })}
+          enableScaling={densityFactor.factor !== 1}
           width={0}
           height={0}
           style={
@@ -1048,104 +1056,94 @@ export function Emulator({ gameId }: Props) {
             }
           }}
         />
-      </div>
-      <div className={styles.panel}>
-        <button
+      </_CanvasWrapper>
+      <_Panel>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.POWER);
           }}
         >
           DD
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.GROUND);
           }}
         >
           GND
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.NPN);
           }}
         >
           npn
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.PNP);
           }}
         >
           pnp
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.INPUT);
           }}
         >
           input
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.OUTPUT);
           }}
         >
           output
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             addElement(ElementType.DOT);
           }}
         >
           dot
-        </button>
-        <span className={styles.divider} />
-        <button
+        </_Button>
+        <_Divider />
+        <_Button
           type="button"
           disabled={!focusElement.target}
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             deleteElementInFocus();
           }}
         >
           delete
-        </button>
-        <span className={styles.divider} />
-        <button
+        </_Button>
+        <_Divider />
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             loadGameState();
           }}
         >
           Load
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             localStorage.setItem(
@@ -1162,10 +1160,9 @@ export function Emulator({ gameId }: Props) {
           }}
         >
           Save
-        </button>
-        <button
+        </_Button>
+        <_Button
           type="button"
-          className={styles.button}
           onClick={(e) => {
             e.preventDefault();
             clearState();
@@ -1173,15 +1170,13 @@ export function Emulator({ gameId }: Props) {
           }}
         >
           Clear
-        </button>
+        </_Button>
         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a href="#">
-          <button type="button" className={styles.button}>
-            Exit
-          </button>
+          <_Button type="button">Exit</_Button>
         </a>
-      </div>
-      <div className={styles.info}>
+      </_Panel>
+      <_Info>
         <TruthTable
           elements={state.elements}
           options={options}
@@ -1193,8 +1188,8 @@ export function Emulator({ gameId }: Props) {
           }
         />
         <SchemaErrors state={state} />
-        <span className={styles.space} />
-        <div className={styles.debugPanel}>
+        <_Space />
+        <div>
           <div>elements: {state.elements.length}</div>
           <div>connections: {state.connections.length}</div>
           <div>el moving: {yesNo(movingElement.target)}</div>
@@ -1238,7 +1233,7 @@ export function Emulator({ gameId }: Props) {
           <div>drag: {yesNo(panState.isPan)}</div>
           <div>mouse down: {yesNo(mouseState.isMouseDown)}</div>
         </div>
-      </div>
-    </main>
+      </_Info>
+    </_App>
   );
 }

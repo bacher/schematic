@@ -23,13 +23,56 @@
   "rules": {
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-shadow": "off",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "default",
+        "format": ["camelCase"],
+        "leadingUnderscore": "forbid",
+        "trailingUnderscore": "forbid"
+      },
+      {
+        "selector": "variableLike",
+        "format": ["camelCase", "StrictPascalCase"]
+      },
+      {
+        "selector": "variable",
+        "modifiers": ["const"],
+        "format": ["camelCase", "StrictPascalCase", "UPPER_CASE"],
+        "leadingUnderscore": "allowSingleOrDouble"
+      },
+      {
+        "selector": "parameter",
+        "format": ["camelCase"],
+        "leadingUnderscore": "allowSingleOrDouble"
+      },
+      {
+        "selector": "typeLike",
+        "format": ["StrictPascalCase"]
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase", "StrictPascalCase"]
+      },
+      {
+        "selector": "enumMember",
+        "format": ["UPPER_CASE"]
+      }
+    ],
     "eslint-comments/no-unused-disable": "error",
     "import/no-unresolved": "error",
     "import/prefer-default-export": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "no-lonely-if": "off",
+    "no-underscore-dangle": "off",
     "react/no-array-index-key": "off",
     "react/react-in-jsx-scope": "off",
+    "react/jsx-pascal-case": [
+      "error",
+      {
+        "allowLeadingUnderscore": true
+      }
+    ],
     "no-restricted-syntax": [
       "error",
       "FunctionExpression",

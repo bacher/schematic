@@ -1,9 +1,33 @@
 import { useMemo } from 'react';
+import { styled } from 'stitches';
 
 import { getLiteralForSignal } from 'common/common';
 import { Element, ElementType, Options } from 'common/types';
 
-import styles from './TruthTable.module.scss';
+const _Table = styled('table', {
+  '> thead > tr > th': {
+    textAlign: 'center',
+    fontWeight: 700,
+  },
+  '> tbody > tr > td': {
+    textAlign: 'center',
+    fontWeight: 400,
+  },
+});
+
+const _Options = styled('div', {
+  display: 'flex',
+  flexDirection: 'column',
+  marginBottom: 10,
+});
+
+const _Option = styled('label', {
+  userSelect: 'none',
+
+  '> input:not(:disabled)': {
+    cursor: 'pointer',
+  },
+});
 
 type Props = {
   elements: Element[];
@@ -42,9 +66,9 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
   ]);
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.options}>
-        <label className={styles.option}>
+    <div>
+      <_Options>
+        <_Option>
           <input
             type="checkbox"
             checked={options.isInputVector}
@@ -55,8 +79,8 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
             }}
           />{' '}
           Treat input as vector
-        </label>
-        <label className={styles.option}>
+        </_Option>
+        <_Option>
           <input
             type="checkbox"
             checked={options.isOutputVector}
@@ -67,18 +91,18 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
             }}
           />{' '}
           Treat output as vector
-        </label>
-      </div>
-      <table className={styles.table}>
+        </_Option>
+      </_Options>
+      <_Table>
         <thead>
           <tr>
             {renderInputs.map((el, i) => (
-              <th key={i} className={styles.tableCell}>
+              <th key={i}>
                 {getLiteralForSignal(inputs, el, options.isInputVector)}
               </th>
             ))}
             {renderOutputs.map((el, i) => (
-              <th key={i} className={styles.tableCell}>
+              <th key={i}>
                 {getLiteralForSignal(outputs, el, options.isOutputVector)}
               </th>
             ))}
@@ -99,7 +123,7 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </_Table>
     </div>
   );
 }
