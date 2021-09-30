@@ -18,9 +18,11 @@ import {
 import { elementsDescriptions } from 'common/data';
 import { getLiteralForSignal } from 'common/common';
 import { getCanvasContext } from 'utils/canvas';
+import { drawSimulation } from 'utils/simulation';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 import { InputSignalsControl } from 'components/InputSignalsControl';
+import { Option } from 'components/Option';
 
 import {
   _App,
@@ -118,6 +120,7 @@ export function Emulator({ gameId }: Props) {
     isInputVector: false,
     isOutputVector: false,
     simulate: false,
+    debugDrawId: false,
   });
   const densityFactor = useRefState({ factor: window.devicePixelRatio ?? 1 });
 
@@ -429,7 +432,7 @@ export function Emulator({ gameId }: Props) {
         focusElement.target.type === NodeType.CONNECTION &&
         focusElement.target.connectionIndex === index;
 
-      ctx.lineWidth = isHovered || isInFocus ? 3 : 2;
+      ctx.lineWidth = isHovered || isInFocus ? 3 : 1;
 
       if (isHovered && isInFocus) {
         ctx.strokeStyle = '#8080ff';
@@ -466,7 +469,7 @@ export function Emulator({ gameId }: Props) {
     }
 
     for (const element of state.elements) {
-      const { type, pos } = element;
+      const { id, type, pos } = element;
 
       if (type === ElementType.INPUT || type === ElementType.OUTPUT) {
         const char = getLiteralForSignal(
@@ -499,6 +502,13 @@ export function Emulator({ gameId }: Props) {
 
           ctx.drawImage(img, x0, y0, ICON_SIZE, ICON_SIZE);
         }
+      }
+
+      if (options.debugDrawId) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(id, pos.x + ICON_SIZE / 2 - 6, pos.y - ICON_SIZE / 2 + 6);
       }
 
       const { pins } = elementsDescriptions[type];
@@ -543,6 +553,14 @@ export function Emulator({ gameId }: Props) {
         }
         i += 1;
       }
+    }
+
+    if (options.simulate) {
+      drawSimulation(ctx, {
+        elements: state.elements,
+        connections: state.connections,
+        inputSignals: inputSignalsState.signals,
+      });
     }
 
     ctx.restore();
@@ -1231,13 +1249,21 @@ export function Emulator({ gameId }: Props) {
           active={options.simulate}
           onClick={(e) => {
             e.preventDefault();
-
-            options.simulate = !options.simulate;
-            forceUpdate();
+            setOptions({
+              ...options,
+              simulate: !options.simulate,
+            });
           }}
         >
           {options.simulate ? 'Simulation: ON' : 'Simulation: OFF'}
         </_SimulateButton>
+        <Option
+          title="Debug: draw id"
+          checked={options.debugDrawId}
+          onChange={(checked) => {
+            setOptions({ ...options, debugDrawId: checked });
+          }}
+        />
         <TruthTable
           elements={state.elements}
           options={options}

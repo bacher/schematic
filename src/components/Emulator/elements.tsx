@@ -88,7 +88,7 @@ export const _Info = styled('div', {
     borderLeft: '1px solid #888',
     background: '#ddd',
     overflow: 'hidden',
-    overflowYy: 'auto',
+    overflowY: 'auto',
 
     '> *:not(:last-child)': {
       marginBottom: 16,
@@ -97,6 +97,7 @@ export const _Info = styled('div', {
 });
 
 export const _SimulateButton = styled('button', {
+  flexShrink: 0,
   border: '1px solid #999',
   borderRadius: 0,
   appearance: 'none',

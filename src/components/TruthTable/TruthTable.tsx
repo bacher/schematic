@@ -3,6 +3,7 @@ import { styled } from 'stitches';
 
 import { getLiteralForSignal } from 'common/common';
 import { Element, ElementType, Options } from 'common/types';
+import { Option } from 'components/Option';
 
 const _Table = styled('table', {
   '> thead > tr > th': {
@@ -19,14 +20,6 @@ const _Options = styled('div', {
   display: 'flex',
   flexDirection: 'column',
   marginBottom: 10,
-});
-
-const _Option = styled('label', {
-  userSelect: 'none',
-
-  '> input:not(:disabled)': {
-    cursor: 'pointer',
-  },
 });
 
 type Props = {
@@ -68,30 +61,24 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
   return (
     <div>
       <_Options>
-        <_Option>
-          <input
-            type="checkbox"
-            checked={options.isInputVector}
-            onChange={(e) => {
-              onOptionsChange({
-                isInputVector: e.target.checked,
-              });
-            }}
-          />{' '}
-          Treat input as vector
-        </_Option>
-        <_Option>
-          <input
-            type="checkbox"
-            checked={options.isOutputVector}
-            onChange={(e) => {
-              onOptionsChange({
-                isOutputVector: e.target.checked,
-              });
-            }}
-          />{' '}
-          Treat output as vector
-        </_Option>
+        <Option
+          title="Treat input as vector"
+          checked={options.isInputVector}
+          onChange={(checked) => {
+            onOptionsChange({
+              isInputVector: checked,
+            });
+          }}
+        />
+        <Option
+          title="Treat output as vector"
+          checked={options.isOutputVector}
+          onChange={(checked) => {
+            onOptionsChange({
+              isOutputVector: checked,
+            });
+          }}
+        />
       </_Options>
       <_Table>
         <thead>

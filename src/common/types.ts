@@ -49,4 +49,5 @@ export type Options = {
   isInputVector: boolean;
   isOutputVector: boolean;
   simulate: boolean;
+  debugDrawId: boolean;
 };
