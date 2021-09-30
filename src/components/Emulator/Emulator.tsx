@@ -391,7 +391,7 @@ export function Emulator({ gameId }: Props) {
         focusElement.target.type === NodeType.CONNECTION &&
         focusElement.target.connectionIndex === index;
 
-      ctx.lineWidth = isHovered || isInFocus ? 3 : 1;
+      ctx.lineWidth = isHovered || isInFocus ? 3 : 2;
 
       if (isHovered && isInFocus) {
         ctx.strokeStyle = '#8080ff';

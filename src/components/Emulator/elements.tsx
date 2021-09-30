@@ -47,6 +47,7 @@ export const _Button = styled('button', {
   border: 'none',
   color: '#333',
   background: '#dadada',
+  fontVariant: '14|20',
   whiteSpace: 'nowrap',
   appearance: 'none',
 
