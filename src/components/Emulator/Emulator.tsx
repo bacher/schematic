@@ -20,18 +20,19 @@ import { getLiteralForSignal } from 'common/common';
 import { getCanvasContext } from 'utils/canvas';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
+import { InputSignalsControl } from 'components/InputSignalsControl';
 
 import {
   _App,
-  _Panel,
   _Button,
-  _CanvasWrapper,
   _Canvas,
+  _CanvasWrapper,
   _Divider,
+  _Info,
+  _No,
+  _Panel,
   _Space,
   _Yes,
-  _No,
-  _Info,
 } from './elements';
 
 const ICON_SIZE = 48;
@@ -169,6 +170,7 @@ export function Emulator({ gameId }: Props) {
     elements: [],
     connections: [],
   });
+  const [inputSignalValues, setInputSignalValues] = useState([false, false]);
   const mouseState = useRefState({ isMouseDown: false });
   const panState = useRefState({ isPan: false });
 
@@ -1176,6 +1178,11 @@ export function Emulator({ gameId }: Props) {
           <_Button type="button">Exit</_Button>
         </a>
       </_Panel>
+      <InputSignalsControl
+        inputs={inputSignalValues}
+        isVector={options.isInputVector}
+        onChange={setInputSignalValues}
+      />
       <_Info>
         <TruthTable
           elements={state.elements}
