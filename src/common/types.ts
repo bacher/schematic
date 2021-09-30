@@ -48,4 +48,5 @@ export type GameState = {
 export type Options = {
   isInputVector: boolean;
   isOutputVector: boolean;
+  simulate: boolean;
 };

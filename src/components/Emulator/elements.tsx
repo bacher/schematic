@@ -95,3 +95,19 @@ export const _Info = styled('div', {
     },
   },
 });
+
+export const _SimulateButton = styled('button', {
+  border: '1px solid #999',
+  borderRadius: 0,
+  appearance: 'none',
+  cursor: 'pointer',
+
+  variants: {
+    active: {
+      true: {
+        color: '#fff',
+        background: 'lightgreen',
+      },
+    },
+  },
+});

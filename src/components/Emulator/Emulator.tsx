@@ -31,6 +31,7 @@ import {
   _Info,
   _No,
   _Panel,
+  _SimulateButton,
   _Space,
   _Yes,
 } from './elements';
@@ -116,6 +117,7 @@ export function Emulator({ gameId }: Props) {
   const [options, setOptions] = useState<Options>({
     isInputVector: false,
     isOutputVector: false,
+    simulate: false,
   });
   const densityFactor = useRefState({ factor: window.devicePixelRatio ?? 1 });
 
@@ -170,7 +172,9 @@ export function Emulator({ gameId }: Props) {
     elements: [],
     connections: [],
   });
-  const [inputSignalValues, setInputSignalValues] = useState([false, false]);
+  const inputSignalsState = useRefState<{ signals: boolean[] }>({
+    signals: [],
+  });
   const mouseState = useRefState({ isMouseDown: false });
   const panState = useRefState({ isPan: false });
 
@@ -206,6 +210,7 @@ export function Emulator({ gameId }: Props) {
     const {
       pos: savedPos,
       elements,
+      inputSignals,
       connections,
       options: savedOptions,
     } = JSON.parse(json);
@@ -215,6 +220,15 @@ export function Emulator({ gameId }: Props) {
     pos.x = savedPos.x;
     pos.y = savedPos.y;
     state.elements = elements;
+    if (inputSignals) {
+      inputSignalsState.signals = inputSignals;
+    } else {
+      // TODO: Remove before release
+      inputSignalsState.signals = elements
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter(({ type }: any) => type === ElementType.INPUT)
+        .map(() => false);
+    }
     state.connections = connections;
 
     setOptions(savedOptions);
@@ -255,17 +269,35 @@ export function Emulator({ gameId }: Props) {
       return;
     }
 
+    let needUpdate = false;
+
     switch (focusTarget.type) {
-      case NodeType.ELEMENT:
+      case NodeType.ELEMENT: {
         state.connections = state.connections.filter(
           ([p1, p2]) =>
             p1.elId !== focusTarget.elId && p2.elId !== focusTarget.elId,
         );
 
-        state.elements = state.elements.filter(
-          (el) => el.id !== focusTarget.elId,
+        const element = state.elements.find(
+          ({ id }) => id === focusTarget.elId,
         );
+
+        if (!element) {
+          throw new Error();
+        }
+
+        if (element.type === ElementType.INPUT) {
+          const inputIndex = state.elements
+            .filter(({ type }) => type === ElementType.INPUT)
+            .indexOf(element);
+
+          inputSignalsState.signals.splice(inputIndex, 1);
+          needUpdate = true;
+        }
+
+        state.elements = state.elements.filter((el) => el !== element);
         break;
+      }
       case NodeType.CONNECTION:
         state.connections.splice(focusTarget.connectionIndex, 1);
         break;
@@ -273,6 +305,10 @@ export function Emulator({ gameId }: Props) {
 
     focusElement.target = undefined;
     draw();
+
+    if (needUpdate) {
+      forceUpdate();
+    }
   });
 
   draw = useHandler(() => {
@@ -729,6 +765,8 @@ export function Emulator({ gameId }: Props) {
       id: getNextId(state),
       pos,
     });
+
+    inputSignalsState.signals = [...inputSignalsState.signals, false];
     draw();
   }
 
@@ -1153,6 +1191,7 @@ export function Emulator({ gameId }: Props) {
               JSON.stringify({
                 pos,
                 elements: state.elements,
+                inputSignals: inputSignalsState.signals,
                 connections: state.connections,
                 options,
               }),
@@ -1179,11 +1218,26 @@ export function Emulator({ gameId }: Props) {
         </a>
       </_Panel>
       <InputSignalsControl
-        inputs={inputSignalValues}
+        inputs={inputSignalsState.signals}
         isVector={options.isInputVector}
-        onChange={setInputSignalValues}
+        onChange={(signals) => {
+          inputSignalsState.signals = signals;
+          forceUpdate();
+        }}
       />
       <_Info>
+        <_SimulateButton
+          type="button"
+          active={options.simulate}
+          onClick={(e) => {
+            e.preventDefault();
+
+            options.simulate = !options.simulate;
+            forceUpdate();
+          }}
+        >
+          {options.simulate ? 'Simulation: ON' : 'Simulation: OFF'}
+        </_SimulateButton>
         <TruthTable
           elements={state.elements}
           options={options}
