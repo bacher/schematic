@@ -18,7 +18,7 @@ import {
 import { elementsDescriptions } from 'common/data';
 import { getLiteralForSignal } from 'common/common';
 import { getCanvasContext } from 'utils/canvas';
-import { getNodesSimulationState } from 'utils/simulation';
+import { getNodesSimulationState, NodeState } from 'utils/simulation';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 import { InputSignalsControl } from 'components/InputSignalsControl';
@@ -180,6 +180,9 @@ export function Emulator({ gameId }: Props) {
   });
   const mouseState = useRefState({ isMouseDown: false });
   const panState = useRefState({ isPan: false });
+  const nodesState = useRefState<{ state: NodeState[] | undefined }>({
+    state: undefined,
+  });
 
   function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
     return {
@@ -313,6 +316,20 @@ export function Emulator({ gameId }: Props) {
       forceUpdate();
     }
   });
+
+  // TODO: Call when elements connections or signals change
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function applySimulation() {
+    if (options.simulate) {
+      nodesState.state = getNodesSimulationState({
+        elements: state.elements,
+        connections: state.connections,
+        inputSignals: inputSignalsState.signals,
+      });
+    } else {
+      nodesState.state = undefined;
+    }
+  }
 
   draw = useHandler(() => {
     if (size.width === 0) {
@@ -555,12 +572,9 @@ export function Emulator({ gameId }: Props) {
       }
     }
 
-    if (options.simulate) {
-      getNodesSimulationState({
-        elements: state.elements,
-        connections: state.connections,
-        inputSignals: inputSignalsState.signals,
-      });
+    if (options.simulate && nodesState.state) {
+      // TODO: Draw nodes state
+      // nodesState.state
     }
 
     ctx.restore();

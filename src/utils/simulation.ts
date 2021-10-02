@@ -1,6 +1,3 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
-/* eslint-disable no-console */
-
 import {
   Connection,
   ConnectionPin,
@@ -17,9 +14,10 @@ enum NodePowerState {
   IMPEDANCE,
   GROUND,
   POWER,
+  SHORT_CIRCUIT,
 }
 
-type NodeState = {
+export type NodeState = {
   state: NodePowerState;
   pins: PinId[];
 };
@@ -36,7 +34,9 @@ export function getNodesSimulationState({
   elements: Element[];
   connections: Connection[];
   inputSignals: boolean[];
-}) {
+}): NodeState[] {
+  let isShortCircuit = false;
+
   function getElement(pinId: PinId): Element {
     const elId = pinId.split(':')[0];
 
@@ -65,16 +65,20 @@ export function getNodesSimulationState({
         state === NodePowerState.POWER &&
         node.state === NodePowerState.GROUND
       ) {
-        console.log(`Short circuit between: ${node.pins}`);
-        throw new Error('Short circuit');
+        isShortCircuit = true;
+        // eslint-disable-next-line no-param-reassign
+        node.state = NodePowerState.SHORT_CIRCUIT;
+        return;
       }
 
       if (
         state === NodePowerState.GROUND &&
         node.state === NodePowerState.POWER
       ) {
-        console.log(`Short circuit between: ${node.pins}`);
-        throw new Error('Short circuit');
+        isShortCircuit = true;
+        // eslint-disable-next-line no-param-reassign
+        node.state = NodePowerState.SHORT_CIRCUIT;
+        return;
       }
 
       if (node.state !== state) {
@@ -144,6 +148,10 @@ export function getNodesSimulationState({
               break;
             }
           }
+
+          if (isShortCircuit) {
+            return;
+          }
         }
       }
       break;
@@ -190,10 +198,7 @@ export function getNodesSimulationState({
     pins,
   }));
 
-  try {
-    buildNodesState(nodesList);
-    console.log(nodesList);
-  } catch (error) {
-    console.warn(error);
-  }
+  buildNodesState(nodesList);
+
+  return nodesList;
 }
