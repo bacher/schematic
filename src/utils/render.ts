@@ -60,7 +60,7 @@ export function render(
     Math.floor(size.height / 2) + pos.y,
   );
 
-  if (options.drawAxis) {
+  if (options.debugDrawAxis) {
     ctx.save();
 
     ctx.lineWidth = 1;

@@ -57,6 +57,13 @@ export function OptionsPanel({ gameModel }: Props) {
         {options.simulate ? 'Simulation: ON' : 'Simulation: OFF'}
       </_SimulateButton>
       <Option
+        title="Debug: draw fps"
+        checked={options.debugShowFps}
+        onChange={(checked) => {
+          update({ debugShowFps: checked });
+        }}
+      />
+      <Option
         title="Debug: draw id"
         checked={options.debugDrawId}
         onChange={(checked) => {
@@ -65,9 +72,9 @@ export function OptionsPanel({ gameModel }: Props) {
       />
       <Option
         title="Debug: draw axis"
-        checked={options.drawAxis}
+        checked={options.debugDrawAxis}
         onChange={(checked) => {
-          update({ drawAxis: checked });
+          update({ debugDrawAxis: checked });
         }}
       />
       <Option

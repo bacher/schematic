@@ -3,6 +3,7 @@ import { ElementType, ElementDescription, Options } from './types';
 export const ICON_SIZE = 48;
 export const FOCUS_SIZE = ICON_SIZE + 4;
 export const PIN_DOT_RADIUS = 5;
+export const MAX_FPS = 60;
 
 export const elementsDescriptions: Record<ElementType, ElementDescription> = {
   [ElementType.PNP]: {
@@ -41,5 +42,6 @@ export const defaultOptions: Options = {
   isOutputVector: false,
   simulate: false,
   debugDrawId: false,
-  drawAxis: false,
+  debugDrawAxis: false,
+  debugShowFps: false,
 };

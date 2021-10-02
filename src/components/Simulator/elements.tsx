@@ -11,6 +11,7 @@ export const _App = styled('main', {
 });
 
 export const _CanvasWrapper = styled('div', {
+  position: 'relative',
   flexGrow: 1,
   overflow: 'hidden',
 });
@@ -27,6 +28,14 @@ export const _Canvas = styled('canvas', {
       },
     },
   },
+});
+
+export const _FpsCounter = styled('span', {
+  position: 'absolute',
+  top: 6,
+  right: 6,
+  userSelect: 'none',
+  pointerEvents: 'none',
 });
 
 export const _Space = styled('span', {

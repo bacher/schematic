@@ -4,17 +4,21 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
+import { debounce } from 'lodash-es';
 
 import { Coords, GameId } from 'common/types';
+import { MAX_FPS } from 'common/data';
+import { GameModel, useGameState } from 'models/GameModel';
 import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
 import { useHandler } from 'hooks/useHandler';
 import { useWindowEvent } from 'hooks/useWindowEvent';
 import { useAssets } from 'hooks/useAssets';
 import { getCanvasContext } from 'utils/canvas';
-import { GameModel, useGameState } from 'models/GameModel';
 import { render } from 'utils/render';
+import { useActivePageInterval } from 'hooks/useActivePageInterval';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 import { InputSignalsControl } from 'components/InputSignalsControl';
@@ -22,7 +26,14 @@ import { Toolbar } from 'components/Toolbar';
 import { OptionsPanel } from 'components/OptionsPanel';
 import { DebugPanel } from 'components/DebugPanel';
 
-import { _App, _Canvas, _CanvasWrapper, _Info, _Space } from './elements';
+import {
+  _App,
+  _Canvas,
+  _CanvasWrapper,
+  _FpsCounter,
+  _Info,
+  _Space,
+} from './elements';
 
 type Props = {
   gameId: GameId;
@@ -32,10 +43,11 @@ function getCurrentDensityFactor() {
   return window.devicePixelRatio ?? 1;
 }
 
-export function Emulator({ gameId }: Props) {
+export function Simulator({ gameId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const forceUpdate = useForceUpdate();
+  const [drawFps, setDrawFps] = useState(0);
   const densityFactor = useRefState({
     value: getCurrentDensityFactor(),
   });
@@ -47,7 +59,25 @@ export function Emulator({ gameId }: Props) {
     return GameModel.createEmptyModel(gameId);
   }, [gameId]);
 
-  const cursor = useGameState(gameModel, (state) => state.cursor);
+  const { cursor, showFps } = useGameState(
+    gameModel,
+    ({ cursor, options }) => ({
+      cursor,
+      showFps: options.debugShowFps,
+    }),
+  );
+
+  const fps = useRefState({ value: 0 });
+
+  useActivePageInterval(
+    showFps
+      ? () => {
+          setDrawFps(fps.value);
+          fps.value = 0;
+        }
+      : undefined,
+    1000,
+  );
 
   const size = useRefState({ width: 0, height: 0 });
   const assets = useAssets({
@@ -57,8 +87,8 @@ export function Emulator({ gameId }: Props) {
 
   function convertScreenCoordsToAppCoords({ x, y }: Coords): Coords {
     return {
-      x: x - size.width / 2,
-      y: y - size.height / 2,
+      x: Math.floor(x - size.width / 2),
+      y: Math.floor(y - size.height / 2),
     };
   }
 
@@ -74,7 +104,7 @@ export function Emulator({ gameId }: Props) {
     return false;
   }
 
-  const draw = useHandler(() => {
+  const drawHandler = useHandler(() => {
     if (size.width === 0) {
       return;
     }
@@ -85,6 +115,8 @@ export function Emulator({ gameId }: Props) {
 
     const ctx = getCanvasContext(canvasRef.current);
 
+    fps.value += 1;
+
     render(ctx, {
       gameState: gameModel.getState(),
       size,
@@ -92,6 +124,16 @@ export function Emulator({ gameId }: Props) {
       assets,
     });
   });
+
+  const draw = useMemo(() => {
+    const interval = 1000 / MAX_FPS;
+
+    return debounce(drawHandler, interval, {
+      maxWait: interval,
+      leading: true,
+      trailing: true,
+    });
+  }, [drawHandler]);
 
   function updateSize() {
     const canvasWrapper = canvasWrapperRef.current;
@@ -178,6 +220,7 @@ export function Emulator({ gameId }: Props) {
             }
           }}
         />
+        {showFps && <_FpsCounter>{drawFps}</_FpsCounter>}
       </_CanvasWrapper>
       <Toolbar gameModel={gameModel} />
       <InputSignalsControl gameModel={gameModel} />
