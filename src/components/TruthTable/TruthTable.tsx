@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { styled } from 'stitches';
 
 import { getLiteralForSignal } from 'common/common';
-import { Element, ElementType, Options } from 'common/types';
-import { Option } from 'components/Option';
+import { ElementType } from 'common/types';
+import { GameModel, useGameState } from 'models/GameModel';
 
 const _Table = styled('table', {
   '> thead > tr > th': {
@@ -16,19 +16,16 @@ const _Table = styled('table', {
   },
 });
 
-const _Options = styled('div', {
-  display: 'flex',
-  flexDirection: 'column',
-  marginBottom: 10,
-});
-
 type Props = {
-  elements: Element[];
-  options: Options;
-  onOptionsChange: (update: Partial<Options>) => void;
+  gameModel: GameModel;
 };
 
-export function TruthTable({ elements, options, onOptionsChange }: Props) {
+export function TruthTable({ gameModel }: Props) {
+  const { elements, options } = useGameState(
+    gameModel,
+    ({ elements, options }) => ({ elements, options }),
+  );
+
   const { inputs, outputs, renderInputs, renderOutputs } = useMemo(() => {
     const inputs = elements.filter((el) => el.type === ElementType.INPUT);
     const outputs = elements.filter((el) => el.type === ElementType.OUTPUT);
@@ -60,26 +57,6 @@ export function TruthTable({ elements, options, onOptionsChange }: Props) {
 
   return (
     <div>
-      <_Options>
-        <Option
-          title="Treat input as vector"
-          checked={options.isInputVector}
-          onChange={(checked) => {
-            onOptionsChange({
-              isInputVector: checked,
-            });
-          }}
-        />
-        <Option
-          title="Treat output as vector"
-          checked={options.isOutputVector}
-          onChange={(checked) => {
-            onOptionsChange({
-              isOutputVector: checked,
-            });
-          }}
-        />
-      </_Options>
       <_Table>
         <thead>
           <tr>

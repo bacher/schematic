@@ -4,7 +4,7 @@ import { styled } from 'stitches';
 import { GameId } from 'common/types';
 import { useOnChange } from 'hooks/useOnChange';
 import { useWindowEvent } from 'hooks/useWindowEvent';
-import { Emulator } from 'components/Emulator';
+import { Simulator } from 'components/Simulator';
 
 const _Wrapper = styled('div', {
   padding: 16,
@@ -83,7 +83,7 @@ export function App() {
   });
 
   if (currentGameId) {
-    return <Emulator key={currentGameId} gameId={currentGameId} />;
+    return <Simulator key={currentGameId} gameId={currentGameId} />;
   }
 
   return (

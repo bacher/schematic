@@ -10,18 +10,8 @@ export const _App = styled('main', {
   overflow: 'hidden',
 });
 
-export const _Panel = styled('div', {
-  position: 'absolute',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-  top: 0,
-  left: 0,
-  padding: 4,
-  borderRadius: 2,
-});
-
 export const _CanvasWrapper = styled('div', {
+  position: 'relative',
   flexGrow: 1,
   overflow: 'hidden',
 });
@@ -40,40 +30,16 @@ export const _Canvas = styled('canvas', {
   },
 });
 
-export const _Button = styled('button', {
-  width: 48,
-  height: 48,
-  flexShrink: 0,
-  border: 'none',
-  color: '#333',
-  background: '#dadada',
-  fontVariant: '14|20',
-  whiteSpace: 'nowrap',
-  appearance: 'none',
-
-  '&:disabled': {
-    color: '#999',
-  },
-
-  '&:not(:disabled)': {
-    cursor: 'pointer',
-  },
-});
-
-export const _Divider = styled('span', {
-  height: 8,
+export const _FpsCounter = styled('span', {
+  position: 'absolute',
+  top: 6,
+  right: 6,
+  userSelect: 'none',
+  pointerEvents: 'none',
 });
 
 export const _Space = styled('span', {
   flexGrow: 1,
-});
-
-export const _Yes = styled('span', {
-  color: '#4ebd4e',
-});
-
-export const _No = styled('span', {
-  color: '#666',
 });
 
 export const _Info = styled('div', {
@@ -92,23 +58,6 @@ export const _Info = styled('div', {
 
     '> *:not(:last-child)': {
       marginBottom: 16,
-    },
-  },
-});
-
-export const _SimulateButton = styled('button', {
-  flexShrink: 0,
-  border: '1px solid #999',
-  borderRadius: 0,
-  appearance: 'none',
-  cursor: 'pointer',
-
-  variants: {
-    active: {
-      true: {
-        color: '#fff',
-        background: 'lightgreen',
-      },
     },
   },
 });

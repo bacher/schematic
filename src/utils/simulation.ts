@@ -26,15 +26,11 @@ function getPinId(p: ConnectionPin): PinId {
   return `${p.elId}:${p.pinIndex}`;
 }
 
-export function getNodesSimulationState({
-  elements,
-  connections,
-  inputSignals,
-}: {
-  elements: Element[];
-  connections: Connection[];
-  inputSignals: boolean[];
-}): NodeState[] {
+export function getNodesSimulationState(
+  elements: Element[],
+  connections: Connection[],
+  inputSignals: boolean[],
+): NodeState[] {
   let isShortCircuit = false;
 
   function getElement(pinId: PinId): Element {
@@ -66,7 +62,6 @@ export function getNodesSimulationState({
         node.state === NodePowerState.GROUND
       ) {
         isShortCircuit = true;
-        // eslint-disable-next-line no-param-reassign
         node.state = NodePowerState.SHORT_CIRCUIT;
         return;
       }
@@ -76,13 +71,11 @@ export function getNodesSimulationState({
         node.state === NodePowerState.POWER
       ) {
         isShortCircuit = true;
-        // eslint-disable-next-line no-param-reassign
         node.state = NodePowerState.SHORT_CIRCUIT;
         return;
       }
 
       if (node.state !== state) {
-        // eslint-disable-next-line no-param-reassign
         node.state = state;
         hasChanges = true;
       } else {
