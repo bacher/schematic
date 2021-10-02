@@ -11,16 +11,16 @@ import {
 
 type PinId = `${ElementId}:${number}`;
 
-type Zone = PinId[];
+type Node = PinId[];
 
-enum ZonePowerState {
+enum NodePowerState {
   IMPEDANCE,
   GROUND,
   POWER,
 }
 
-type ZoneState = {
-  state: ZonePowerState;
+type NodeState = {
+  state: NodePowerState;
   pins: PinId[];
 };
 
@@ -28,18 +28,15 @@ function getPinId(p: ConnectionPin): PinId {
   return `${p.elId}:${p.pinIndex}`;
 }
 
-export function drawSimulation(
-  ctx: CanvasRenderingContext2D,
-  {
-    elements,
-    connections,
-    inputSignals,
-  }: {
-    elements: Element[];
-    connections: Connection[];
-    inputSignals: boolean[];
-  },
-) {
+export function getNodesSimulationState({
+  elements,
+  connections,
+  inputSignals,
+}: {
+  elements: Element[];
+  connections: Connection[];
+  inputSignals: boolean[];
+}) {
   function getElement(pinId: PinId): Element {
     const elId = pinId.split(':')[0];
 
@@ -52,37 +49,37 @@ export function drawSimulation(
     return element;
   }
 
-  function buildZonesState(zones: ZoneState[]) {
-    const pinIdToZone = new Map<PinId, ZoneState | undefined>();
+  function buildNodesState(nodes: NodeState[]) {
+    const pinIdToNode = new Map<PinId, NodeState | undefined>();
 
-    for (const zone of zones) {
-      for (const pin of zone.pins) {
-        pinIdToZone.set(pin, zone);
+    for (const node of nodes) {
+      for (const pin of node.pins) {
+        pinIdToNode.set(pin, node);
       }
     }
 
     let hasChanges = true;
 
-    function setZoneState(zone: ZoneState, state: ZonePowerState): void {
+    function setZoneState(node: NodeState, state: NodePowerState): void {
       if (
-        state === ZonePowerState.POWER &&
-        zone.state === ZonePowerState.GROUND
+        state === NodePowerState.POWER &&
+        node.state === NodePowerState.GROUND
       ) {
-        console.log(`Short circuit between: ${zone.pins}`);
+        console.log(`Short circuit between: ${node.pins}`);
         throw new Error('Short circuit');
       }
 
       if (
-        state === ZonePowerState.GROUND &&
-        zone.state === ZonePowerState.POWER
+        state === NodePowerState.GROUND &&
+        node.state === NodePowerState.POWER
       ) {
-        console.log(`Short circuit between: ${zone.pins}`);
+        console.log(`Short circuit between: ${node.pins}`);
         throw new Error('Short circuit');
       }
 
-      if (zone.state !== state) {
+      if (node.state !== state) {
         // eslint-disable-next-line no-param-reassign
-        zone.state = state;
+        node.state = state;
         hasChanges = true;
       } else {
         hasChanges = false;
@@ -92,8 +89,8 @@ export function drawSimulation(
     while (hasChanges) {
       hasChanges = false;
 
-      for (const zone of zones) {
-        for (const pin of zone.pins) {
+      for (const node of nodes) {
+        for (const pin of node.pins) {
           const element = getElement(pin);
 
           switch (element.type) {
@@ -101,48 +98,48 @@ export function drawSimulation(
               const inputIndex = inputElements.indexOf(element);
               const value = inputSignals[inputIndex];
               setZoneState(
-                zone,
-                value ? ZonePowerState.POWER : ZonePowerState.GROUND,
+                node,
+                value ? NodePowerState.POWER : NodePowerState.GROUND,
               );
               break;
             }
             case ElementType.POWER:
-              setZoneState(zone, ZonePowerState.POWER);
+              setZoneState(node, NodePowerState.POWER);
               break;
             case ElementType.GROUND:
-              setZoneState(zone, ZonePowerState.GROUND);
+              setZoneState(node, NodePowerState.GROUND);
               break;
             case ElementType.NPN: {
               // Maybe I should iterate over elements instead of zones?
-              const pin1Zone = pinIdToZone.get(`${element.id}:0`);
-              const pin2Zone = pinIdToZone.get(`${element.id}:1`);
-              const pin3Zone = pinIdToZone.get(`${element.id}:2`);
+              const pin1Zone = pinIdToNode.get(`${element.id}:0`);
+              const pin2Zone = pinIdToNode.get(`${element.id}:1`);
+              const pin3Zone = pinIdToNode.get(`${element.id}:2`);
 
               if (
                 pin1Zone &&
-                pin1Zone.state === ZonePowerState.GROUND &&
+                pin1Zone.state === NodePowerState.GROUND &&
                 pin2Zone &&
-                pin2Zone.state === ZonePowerState.POWER &&
+                pin2Zone.state === NodePowerState.POWER &&
                 pin3Zone
               ) {
-                setZoneState(pin3Zone, ZonePowerState.POWER);
+                setZoneState(pin3Zone, NodePowerState.POWER);
               }
               break;
             }
             case ElementType.PNP: {
               // Maybe I should iterate over elements instead of zones?
-              const pin1Zone = pinIdToZone.get(`${element.id}:0`);
-              const pin2Zone = pinIdToZone.get(`${element.id}:1`);
-              const pin3Zone = pinIdToZone.get(`${element.id}:2`);
+              const pin1Zone = pinIdToNode.get(`${element.id}:0`);
+              const pin2Zone = pinIdToNode.get(`${element.id}:1`);
+              const pin3Zone = pinIdToNode.get(`${element.id}:2`);
 
               if (
                 pin1Zone &&
-                pin1Zone.state === ZonePowerState.POWER &&
+                pin1Zone.state === NodePowerState.POWER &&
                 pin2Zone &&
-                pin2Zone.state === ZonePowerState.GROUND &&
+                pin2Zone.state === NodePowerState.GROUND &&
                 pin3Zone
               ) {
-                setZoneState(pin3Zone, ZonePowerState.GROUND);
+                setZoneState(pin3Zone, NodePowerState.GROUND);
               }
               break;
             }
@@ -153,54 +150,50 @@ export function drawSimulation(
     }
   }
 
-  ctx.save();
-
   const inputElements = elements.filter((el) => el.type === ElementType.INPUT);
-  const pinIdToZones = new Map<PinId, Zone>();
-  const zones = new Set<Zone>();
+  const pinIdToNodes = new Map<PinId, Node>();
+  const nodes = new Set<Node>();
 
   for (const [p1, p2] of connections) {
     const pinId1 = getPinId(p1);
     const pinId2 = getPinId(p2);
 
-    const zone1 = pinIdToZones.get(pinId1);
-    const zone2 = pinIdToZones.get(pinId2);
+    const node1 = pinIdToNodes.get(pinId1);
+    const node2 = pinIdToNodes.get(pinId2);
 
-    if (zone1 && zone2) {
-      const mergedZone = [...zone1, ...zone2];
+    if (node1 && node2) {
+      const mergedNode = [...node1, ...node2];
 
-      zones.delete(zone1);
-      zones.delete(zone2);
-      zones.add(mergedZone);
+      nodes.delete(node1);
+      nodes.delete(node2);
+      nodes.add(mergedNode);
 
-      for (const pinId of mergedZone) {
-        pinIdToZones.set(pinId, mergedZone);
+      for (const pinId of mergedNode) {
+        pinIdToNodes.set(pinId, mergedNode);
       }
-    } else if (zone1) {
-      zone1.push(pinId2);
-      pinIdToZones.set(pinId2, zone1);
-    } else if (zone2) {
-      zone2.push(pinId1);
-      pinIdToZones.set(pinId1, zone2);
+    } else if (node1) {
+      node1.push(pinId2);
+      pinIdToNodes.set(pinId2, node1);
+    } else if (node2) {
+      node2.push(pinId1);
+      pinIdToNodes.set(pinId1, node2);
     } else {
-      const zone = [pinId1, pinId2];
-      zones.add(zone);
-      pinIdToZones.set(pinId1, zone);
-      pinIdToZones.set(pinId2, zone);
+      const node = [pinId1, pinId2];
+      nodes.add(node);
+      pinIdToNodes.set(pinId1, node);
+      pinIdToNodes.set(pinId2, node);
     }
   }
 
-  const zonesList = [...zones.values()].map((pins) => ({
-    state: ZonePowerState.IMPEDANCE,
+  const nodesList = [...nodes.values()].map((pins) => ({
+    state: NodePowerState.IMPEDANCE,
     pins,
   }));
 
   try {
-    buildZonesState(zonesList);
-    console.log(zonesList);
+    buildNodesState(nodesList);
+    console.log(nodesList);
   } catch (error) {
     console.warn(error);
   }
-
-  ctx.restore();
 }

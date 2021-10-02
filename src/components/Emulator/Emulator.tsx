@@ -18,7 +18,7 @@ import {
 import { elementsDescriptions } from 'common/data';
 import { getLiteralForSignal } from 'common/common';
 import { getCanvasContext } from 'utils/canvas';
-import { drawSimulation } from 'utils/simulation';
+import { getNodesSimulationState } from 'utils/simulation';
 import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 import { InputSignalsControl } from 'components/InputSignalsControl';
@@ -556,7 +556,7 @@ export function Emulator({ gameId }: Props) {
     }
 
     if (options.simulate) {
-      drawSimulation(ctx, {
+      getNodesSimulationState({
         elements: state.elements,
         connections: state.connections,
         inputSignals: inputSignalsState.signals,
