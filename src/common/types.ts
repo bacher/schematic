@@ -50,4 +50,5 @@ export type Options = {
   isOutputVector: boolean;
   simulate: boolean;
   debugDrawId: boolean;
+  drawAxis: boolean;
 };

@@ -111,17 +111,20 @@ type Props = {
   gameId: GameId;
 };
 
+const initialOptions = {
+  isInputVector: false,
+  isOutputVector: false,
+  simulate: false,
+  debugDrawId: false,
+  drawAxis: false,
+};
+
 export function Emulator({ gameId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const forceUpdate = useForceUpdate();
   const [cursor, setCursor] = useState<Cursor>();
-  const [options, setOptions] = useState<Options>({
-    isInputVector: false,
-    isOutputVector: false,
-    simulate: false,
-    debugDrawId: false,
-  });
+  const [options, setOptions] = useState<Options>(initialOptions);
   const densityFactor = useRefState({ factor: window.devicePixelRatio ?? 1 });
 
   const size = useRefState({ width: 0, height: 0 });
@@ -237,7 +240,10 @@ export function Emulator({ gameId }: Props) {
     }
     state.connections = connections;
 
-    setOptions(savedOptions);
+    setOptions({
+      ...initialOptions,
+      ...savedOptions,
+    });
 
     window.setTimeout(draw, 0);
   });
@@ -355,36 +361,38 @@ export function Emulator({ gameId }: Props) {
       Math.floor(size.height / 2) + pos.y,
     );
 
-    ctx.save();
+    if (options.drawAxis) {
+      ctx.save();
 
-    ctx.lineWidth = 1;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'center';
-    ctx.font = '15px sans-serif';
-    ctx.fillStyle = '#333';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(100, 0);
-    ctx.moveTo(95, -5);
-    ctx.lineTo(100, 0);
-    ctx.moveTo(95, 5);
-    ctx.lineTo(100, 0);
-    ctx.strokeStyle = '#0f0';
-    ctx.stroke();
-    ctx.fillText('X', 90, 15);
+      ctx.lineWidth = 1;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.font = '15px sans-serif';
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(100, 0);
+      ctx.moveTo(95, -5);
+      ctx.lineTo(100, 0);
+      ctx.moveTo(95, 5);
+      ctx.lineTo(100, 0);
+      ctx.strokeStyle = '#0f0';
+      ctx.stroke();
+      ctx.fillText('X', 90, 15);
 
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, 100);
-    ctx.moveTo(-5, 95);
-    ctx.lineTo(0, 100);
-    ctx.moveTo(5, 95);
-    ctx.lineTo(0, 100);
-    ctx.strokeStyle = '#00f';
-    ctx.stroke();
-    ctx.fillText('Y', 12, 90);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 100);
+      ctx.moveTo(-5, 95);
+      ctx.lineTo(0, 100);
+      ctx.moveTo(5, 95);
+      ctx.lineTo(0, 100);
+      ctx.strokeStyle = '#00f';
+      ctx.stroke();
+      ctx.fillText('Y', 12, 90);
 
-    ctx.restore();
+      ctx.restore();
+    }
 
     for (const element of state.elements) {
       const { pos } = element;
@@ -1276,6 +1284,13 @@ export function Emulator({ gameId }: Props) {
           checked={options.debugDrawId}
           onChange={(checked) => {
             setOptions({ ...options, debugDrawId: checked });
+          }}
+        />
+        <Option
+          title="Debug: draw axis"
+          checked={options.drawAxis}
+          onChange={(checked) => {
+            setOptions({ ...options, drawAxis: checked });
           }}
         />
         <TruthTable
