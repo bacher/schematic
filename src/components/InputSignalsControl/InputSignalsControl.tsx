@@ -1,5 +1,6 @@
 import { styled } from 'stitches';
 import { getLiteralForSignalByIndex } from 'common/common';
+import { GameModel, useGameState } from 'models/GameModel';
 
 const _Wrapper = styled('div', {
   position: 'absolute',
@@ -17,7 +18,6 @@ const _Title = styled('h2', {
 
 const _Inputs = styled('div', {
   display: 'flex',
-  // gridTemplateColumns: '"repeat(auto-fit, 1fr)"',
   gap: 4,
 
   variants: {
@@ -60,36 +60,42 @@ const _Symbol = styled('p', {
 });
 
 type Props = {
-  inputs: boolean[];
-  isVector: boolean;
-  onChange: (inputs: boolean[]) => void;
+  gameModel: GameModel;
 };
 
-export function InputSignalsControl({ inputs, isVector, onChange }: Props) {
+export function InputSignalsControl({ gameModel }: Props) {
+  const { inputSignals, options } = useGameState(
+    gameModel,
+    ({ inputSignals, options }) => ({
+      inputSignals,
+      options,
+    }),
+  );
+
   return (
     <_Wrapper>
       <_Title>Input signals:</_Title>
-      <_Inputs reverse={isVector}>
-        {inputs.map((enabled, index) => (
+      <_Inputs reverse={options.isInputVector}>
+        {inputSignals.map((enabled, index) => (
           <_InputLabel key={index}>
             <_HiddenInput
               type="checkbox"
               checked={enabled}
               onChange={(e) => {
-                onChange(
-                  inputs.map((enabled, i) =>
-                    i === index ? e.target.checked : enabled,
-                  ),
+                const signals = inputSignals.map((enabled, i) =>
+                  i === index ? e.target.checked : enabled,
                 );
+
+                gameModel.updateInputSignals(signals);
               }}
             />
             <_Bg />
             <_Symbol>
               {getLiteralForSignalByIndex({
-                elementsCount: inputs.length,
+                elementsCount: inputSignals.length,
                 index,
                 isInput: true,
-                isVector,
+                isVector: options.isInputVector,
               })}
             </_Symbol>
           </_InputLabel>

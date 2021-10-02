@@ -1,24 +1,32 @@
 import { styled } from 'stitches';
 
-import type { GameState } from 'common/types';
 import { elementsDescriptions } from 'common/data';
+import { GameModel, useGameState } from 'models/GameModel';
 
 const _Title = styled('h2', {
   margin: 0,
 });
 
 type Props = {
-  state: GameState;
+  gameModel: GameModel;
 };
 
-export function SchemaErrors({ state }: Props) {
+export function SchemaErrors({ gameModel }: Props) {
+  const { elements, connections } = useGameState(
+    gameModel,
+    ({ elements, connections }) => ({
+      elements,
+      connections,
+    }),
+  );
+
   const errors = [];
 
-  for (const el of state.elements) {
+  for (const el of elements) {
     const { pins } = elementsDescriptions[el.type];
     const used = pins.map(() => false);
 
-    for (const connection of state.connections) {
+    for (const connection of connections) {
       for (const p of connection) {
         if (p.elId === el.id) {
           used[p.pinIndex] = true;

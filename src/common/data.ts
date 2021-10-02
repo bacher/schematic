@@ -1,4 +1,8 @@
-import { ElementType, ElementDescription } from './types';
+import { ElementType, ElementDescription, Options } from './types';
+
+export const ICON_SIZE = 48;
+export const FOCUS_SIZE = ICON_SIZE + 4;
+export const PIN_DOT_RADIUS = 5;
 
 export const elementsDescriptions: Record<ElementType, ElementDescription> = {
   [ElementType.PNP]: {
@@ -30,4 +34,12 @@ export const elementsDescriptions: Record<ElementType, ElementDescription> = {
   [ElementType.DOT]: {
     pins: [{ pos: { x: 0.5, y: 0.5 } }],
   },
+};
+
+export const defaultOptions: Options = {
+  isInputVector: false,
+  isOutputVector: false,
+  simulate: false,
+  debugDrawId: false,
+  drawAxis: false,
 };

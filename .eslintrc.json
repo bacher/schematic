@@ -23,6 +23,13 @@
   "rules": {
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-shadow": "off",
+    "@typescript-eslint/lines-between-class-members": [
+      "error",
+      "always",
+      {
+        "exceptAfterSingleLine": true
+      }
+    ],
     "@typescript-eslint/naming-convention": [
       "error",
       {
@@ -59,6 +66,13 @@
         "format": ["UPPER_CASE"]
       }
     ],
+    "no-param-reassign": [
+      "off",
+      {
+        "props": false
+      }
+    ],
+    "no-debugger": "warn",
     "eslint-comments/no-unused-disable": "error",
     "import/no-unresolved": "error",
     "import/prefer-default-export": "off",
@@ -75,7 +89,6 @@
     ],
     "no-restricted-syntax": [
       "error",
-      "FunctionExpression",
       "ForInStatement",
       "LabeledStatement",
       "WithStatement",

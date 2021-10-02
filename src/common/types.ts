@@ -20,6 +20,24 @@ export type Point = {
   y: number;
 };
 
+export type BoxSize = {
+  width: number;
+  height: number;
+};
+
+export type Cursor =
+  | 'move'
+  | 'pointer'
+  | 'drag'
+  | 'grab'
+  | 'grabbing'
+  | 'cross';
+
+export enum ObjectType {
+  ELEMENT,
+  CONNECTION,
+}
+
 export type ElementId = `el${number}`;
 
 export type Element = {
@@ -51,4 +69,20 @@ export type Options = {
   simulate: boolean;
   debugDrawId: boolean;
   drawAxis: boolean;
+};
+
+export enum LoadingStatus {
+  NONE,
+  LOADING,
+  DONE,
+}
+
+export type AssetSet = {
+  images: Record<string, HTMLImageElement>;
+  status: LoadingStatus;
+};
+
+export type Assets = {
+  x1: AssetSet;
+  x2: AssetSet;
 };
