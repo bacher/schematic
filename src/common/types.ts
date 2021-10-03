@@ -26,6 +26,7 @@ export type BoxSize = {
 };
 
 export type Cursor =
+  | 'initial'
   | 'move'
   | 'pointer'
   | 'drag'
@@ -65,6 +66,7 @@ export type GameState = {
 };
 
 export type Options = {
+  autoSaves: boolean;
   isInputVector: boolean;
   isOutputVector: boolean;
   simulate: boolean;

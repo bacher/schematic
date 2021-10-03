@@ -18,7 +18,7 @@ export const _CanvasWrapper = styled('div', {
 
 export const _Canvas = styled('canvas', {
   display: 'block',
-  cursor: 'grab',
+  cursor: 'initial',
 
   variants: {
     enableScaling: {

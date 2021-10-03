@@ -1,4 +1,4 @@
-import { pick, defaults, without, last } from 'lodash-es';
+import { pick, defaults, without, last, throttle } from 'lodash-es';
 import im from 'immer';
 import memoize from 'memoize-one';
 import shallowequal from 'shallowequal';
@@ -16,6 +16,7 @@ import {
   Point,
 } from 'common/types';
 import {
+  AUTO_SAVE_INTERVAL,
   defaultOptions,
   elementsDescriptions,
   ICON_SIZE,
@@ -207,8 +208,9 @@ export class GameModel {
   public underWatch = false;
   public needTriggerUpdate = false;
 
-  private gameId: GameId;
+  private readonly gameId: GameId;
   private drawHandler?: () => void;
+  private destroying = false;
 
   private elements: Element[];
   private connections: Connection[];
@@ -274,6 +276,13 @@ export class GameModel {
     this.lastStateSnapshot = undefined;
   }
 
+  public destroy() {
+    this.destroying = true;
+    this.saveGameThrottled.flush();
+    this.clearState();
+    this.drawHandler = undefined;
+  }
+
   public setDrawHandler(drawHandler: (() => void) | undefined) {
     this.drawHandler = drawHandler;
   }
@@ -290,6 +299,11 @@ export class GameModel {
       }),
     );
   }
+
+  private saveGameThrottled = throttle(this.saveGame, AUTO_SAVE_INTERVAL, {
+    leading: false,
+    trailing: true,
+  });
 
   public getState(): GameModelState {
     const state = {
@@ -449,11 +463,19 @@ export class GameModel {
 
     if (this.wireElement) {
       this.wireElement = im(this.wireElement, (wire) => {
-        if (wire.pullPos && this.mousePos) {
-          wire.pullPos.x = this.mousePos.x;
-          wire.pullPos.y = this.mousePos.y;
+        if (!this.mousePos) {
+          wire.pullPos = undefined;
+          return;
+        }
+
+        const x = this.mousePos.x - this.pos.x;
+        const y = this.mousePos.y - this.pos.y;
+
+        if (wire.pullPos) {
+          wire.pullPos.x = x;
+          wire.pullPos.y = y;
         } else {
-          wire.pullPos = this.mousePos;
+          wire.pullPos = { x, y };
         }
       });
     }
@@ -566,9 +588,13 @@ export class GameModel {
       if (panState.isPan) {
         return 'grabbing';
       }
+    } else {
+      if (panState.isPan) {
+        return 'move';
+      }
     }
 
-    return 'move';
+    return 'initial';
   }
 
   @draw
@@ -630,9 +656,15 @@ export class GameModel {
   }
 
   public triggerUpdate() {
+    if (this.destroying) {
+      return;
+    }
+
     if (this.drawHandler) {
       this.drawHandler();
     }
+
+    this.saveGameThrottled();
 
     const state = this.getState();
 

@@ -44,6 +44,24 @@ export function OptionsPanel({ gameModel }: Props) {
     });
   }
 
+  function OptionControl({
+    title,
+    optionName,
+  }: {
+    title: string;
+    optionName: keyof Options;
+  }) {
+    return (
+      <Option
+        title={title}
+        checked={options[optionName]}
+        onChange={(checked) => {
+          update({ [optionName]: checked });
+        }}
+      />
+    );
+  }
+
   return (
     <_Wrapper>
       <_SimulateButton
@@ -56,40 +74,14 @@ export function OptionsPanel({ gameModel }: Props) {
       >
         {options.simulate ? 'Simulation: ON' : 'Simulation: OFF'}
       </_SimulateButton>
-      <Option
-        title="Debug: draw fps"
-        checked={options.debugShowFps}
-        onChange={(checked) => {
-          update({ debugShowFps: checked });
-        }}
-      />
-      <Option
-        title="Debug: draw id"
-        checked={options.debugDrawId}
-        onChange={(checked) => {
-          update({ debugDrawId: checked });
-        }}
-      />
-      <Option
-        title="Debug: draw axis"
-        checked={options.debugDrawAxis}
-        onChange={(checked) => {
-          update({ debugDrawAxis: checked });
-        }}
-      />
-      <Option
-        title="Treat input as vector"
-        checked={options.isInputVector}
-        onChange={(checked) => {
-          update({ isInputVector: checked });
-        }}
-      />
-      <Option
+      <OptionControl title="Auto saves" optionName="autoSaves" />
+      <OptionControl title="Debug: draw fps" optionName="debugShowFps" />
+      <OptionControl title="Debug: draw id" optionName="debugDrawId" />
+      <OptionControl title="Debug: draw axis" optionName="debugDrawAxis" />
+      <OptionControl title="Treat input as vector" optionName="isInputVector" />
+      <OptionControl
         title="Treat output as vector"
-        checked={options.isOutputVector}
-        onChange={(checked) => {
-          update({ isOutputVector: checked });
-        }}
+        optionName="isOutputVector"
       />
     </_Wrapper>
   );

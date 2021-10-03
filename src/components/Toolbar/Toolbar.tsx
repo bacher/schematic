@@ -43,10 +43,21 @@ type Props = {
 };
 
 export function Toolbar({ gameModel }: Props) {
-  const focusElement = useGameState(gameModel, (state) => state.focusElement);
+  const { focusElement, autoSaves } = useGameState(
+    gameModel,
+    ({ focusElement, options }) => ({
+      focusElement,
+      autoSaves: options.autoSaves,
+    }),
+  );
 
   return (
     <_Wrapper>
+      {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+      <a href="#" title="">
+        <_Button type="button">Menu</_Button>
+      </a>
+      <_Divider />
       <_Button
         type="button"
         onClick={(e) => {
@@ -122,24 +133,28 @@ export function Toolbar({ gameModel }: Props) {
         delete
       </_Button>
       <_Divider />
-      <_Button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          gameModel.reloadFromSave();
-        }}
-      >
-        Reload
-      </_Button>
-      <_Button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          gameModel.saveGame();
-        }}
-      >
-        Save
-      </_Button>
+      {!autoSaves && (
+        <>
+          <_Button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              gameModel.reloadFromSave();
+            }}
+          >
+            Reload
+          </_Button>
+          <_Button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              gameModel.saveGame();
+            }}
+          >
+            Save
+          </_Button>
+        </>
+      )}
       <_Button
         type="button"
         onClick={(e) => {
@@ -149,10 +164,6 @@ export function Toolbar({ gameModel }: Props) {
       >
         Clear
       </_Button>
-      {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-      <a href="#" title="">
-        <_Button type="button">Exit</_Button>
-      </a>
     </_Wrapper>
   );
 }
