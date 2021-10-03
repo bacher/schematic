@@ -296,7 +296,7 @@ export function render(
       ctx.arc(
         pos.x + (pin.pos.x - 0.5) * ICON_SIZE,
         pos.y + (pin.pos.y - 0.5) * ICON_SIZE,
-        isHovered ? PIN_DOT_RADIUS + 1 : PIN_DOT_RADIUS,
+        isHovered || isWire ? PIN_DOT_RADIUS + 1 : PIN_DOT_RADIUS,
         0,
         Math.PI * 2,
       );
@@ -306,27 +306,28 @@ export function render(
         getPinId({ elId: element.id, pinIndex: i }),
       );
 
-      let fillColor = '#fff';
+      let fillColor: string | undefined;
       let noBorder = false;
 
       if (
-        [ElementType.DOT, ElementType.INPUT, ElementType.OUTPUT].includes(
-          element.type,
-        )
+        [
+          ElementType.DOT,
+          ElementType.INPUT,
+          ElementType.OUTPUT,
+          ElementType.GROUND,
+          ElementType.POWER,
+        ].includes(element.type)
       ) {
         switch (nodeState) {
-          case NodePowerState.SHORT_CIRCUIT: {
+          case NodePowerState.SHORT_CIRCUIT:
             fillColor = '#f00';
             break;
-          }
-          case NodePowerState.POWER: {
+          case NodePowerState.POWER:
             fillColor = '#ffc59b';
             break;
-          }
-          case NodePowerState.GROUND: {
+          case NodePowerState.GROUND:
             fillColor = '#d4d4ff';
             break;
-          }
         }
       }
 
@@ -336,15 +337,16 @@ export function render(
       }
 
       ctx.save();
-      ctx.fillStyle = fillColor;
+      ctx.fillStyle = fillColor ?? '#fff';
       ctx.fill();
 
       if (!noBorder) {
         ctx.strokeStyle = '#448';
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.restore();
       }
+
+      ctx.restore();
 
       i += 1;
     }
