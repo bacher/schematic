@@ -50,12 +50,7 @@ export function DebugPanel({ gameModel }: Props) {
         {yesNo(hoverElement && hoverElement.type === ObjectType.ELEMENT)}
       </div>
       <div>
-        pin hover:{' '}
-        {yesNo(
-          hoverElement &&
-            hoverElement.type === ObjectType.ELEMENT &&
-            hoverElement.activePin,
-        )}
+        pin hover: {yesNo(hoverElement && hoverElement.type === ObjectType.PIN)}
       </div>
       <div>
         conn hover:{' '}

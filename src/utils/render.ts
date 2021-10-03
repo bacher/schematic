@@ -243,10 +243,9 @@ export function render(
     for (const pin of pins) {
       const isHovered =
         hoverElement &&
-        hoverElement.type === ObjectType.ELEMENT &&
+        hoverElement.type === ObjectType.PIN &&
         hoverElement.elId === element.id &&
-        hoverElement.activePin &&
-        hoverElement.activePin.index === i;
+        hoverElement.pinIndex === i;
 
       const isWire =
         wireElement &&

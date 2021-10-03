@@ -36,6 +36,7 @@ export type Cursor =
 export enum ObjectType {
   ELEMENT,
   CONNECTION,
+  PIN,
 }
 
 export type ElementId = `el${number}`;

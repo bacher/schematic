@@ -30,7 +30,11 @@ type HoverElement =
   | {
       type: ObjectType.ELEMENT;
       elId: ElementId;
-      activePin: { index: number } | undefined;
+    }
+  | {
+      type: ObjectType.PIN;
+      elId: ElementId;
+      pinIndex: number;
     }
   | {
       type: ObjectType.CONNECTION;
@@ -395,12 +399,11 @@ export class GameModel {
         !isMoving &&
         !this.wireElement &&
         this.hoverElement &&
-        this.hoverElement.type === ObjectType.ELEMENT &&
-        this.hoverElement.activePin
+        this.hoverElement.type === ObjectType.PIN
       ) {
         this.startWiring({
           elId: this.hoverElement.elId,
-          pinIndex: this.hoverElement.activePin.index,
+          pinIndex: this.hoverElement.pinIndex,
         });
       }
 
@@ -485,8 +488,7 @@ export class GameModel {
     if (this.wireElement) {
       if (
         this.hoverElement &&
-        this.hoverElement.type === ObjectType.ELEMENT &&
-        this.hoverElement.activePin &&
+        this.hoverElement.type === ObjectType.PIN &&
         this.wireElement.elId !== this.hoverElement.elId
       ) {
         this.connections = [
@@ -494,7 +496,7 @@ export class GameModel {
           [
             {
               elId: this.hoverElement.elId,
-              pinIndex: this.hoverElement.activePin.index,
+              pinIndex: this.hoverElement.pinIndex,
             },
             {
               elId: this.wireElement.elId,
@@ -506,22 +508,15 @@ export class GameModel {
 
       this.wireElement = undefined;
     } else if (!this.wireElement) {
-      if (
-        this.hoverElement &&
-        this.hoverElement.type === ObjectType.ELEMENT &&
-        this.hoverElement.activePin
-      ) {
+      if (this.hoverElement && this.hoverElement.type === ObjectType.PIN) {
         this.startWiring({
           elId: this.hoverElement.elId,
-          pinIndex: this.hoverElement.activePin.index,
+          pinIndex: this.hoverElement.pinIndex,
         });
       }
 
       if (this.hoverElement) {
-        if (
-          this.hoverElement.type === ObjectType.ELEMENT &&
-          !this.hoverElement.activePin
-        ) {
+        if (this.hoverElement.type === ObjectType.ELEMENT) {
           if (
             !this.focusElement ||
             this.focusElement.type !== ObjectType.ELEMENT ||
@@ -557,16 +552,15 @@ export class GameModel {
     }
 
     if (hoverElement) {
-      if (hoverElement.type === ObjectType.CONNECTION) {
+      if (
+        hoverElement.type === ObjectType.CONNECTION ||
+        hoverElement.type === ObjectType.ELEMENT
+      ) {
         return 'move';
       }
 
-      if (hoverElement.type === ObjectType.ELEMENT) {
-        if (hoverElement.activePin) {
-          return 'pointer';
-        }
-
-        return 'move';
+      if (hoverElement.type === ObjectType.PIN) {
+        return 'pointer';
       }
 
       if (panState.isPan) {
@@ -719,17 +713,23 @@ export class GameModel {
   @watch
   private checkHover(): void {
     if (!this.mousePos) {
-      if (this.hoverElement) {
-        this.hoverElement = undefined;
-      }
+      this.hoverElement = undefined;
       return;
     }
 
-    const { x, y } = subtract(this.mousePos, this.pos);
+    const point = subtract(this.mousePos, this.pos);
 
-    let hoverFound = false;
-    let hoverConnectionFound = false;
+    const hoverElement =
+      this.checkPinHover(point) ||
+      this.checkElementHover(point) ||
+      this.checkConnectionHover(point);
 
+    if (!shallowequal(this.hoverElement, hoverElement)) {
+      this.hoverElement = hoverElement;
+    }
+  }
+
+  private checkPinHover({ x, y }: Point): HoverElement | undefined {
     for (const element of this.elements) {
       const { pins } = elementsDescriptions[element.type];
 
@@ -742,100 +742,69 @@ export class GameModel {
             (y0 + pin.pos.y * ICON_SIZE - y) ** 2 <
           (PIN_DOT_RADIUS + 4) ** 2
         ) {
-          const pinIndex = pins.indexOf(pin);
-
-          // before set check if already hovered
-          if (
-            !this.hoverElement ||
-            this.hoverElement.type !== ObjectType.ELEMENT ||
-            this.hoverElement.elId !== element.id ||
-            this.hoverElement.activePin?.index !== pinIndex
-          ) {
-            this.hoverElement = {
-              type: ObjectType.ELEMENT,
-              elId: element.id,
-              activePin: {
-                index: pinIndex,
-              },
-            };
-          }
-          hoverFound = true;
-          break;
+          return {
+            type: ObjectType.PIN,
+            elId: element.id,
+            pinIndex: pins.indexOf(pin),
+          };
         }
       }
     }
+    return undefined;
+  }
 
-    if (!hoverFound) {
-      for (const element of this.elements) {
-        const x0 = element.pos.x - ICON_SIZE / 2;
-        const y0 = element.pos.y - ICON_SIZE / 2;
+  private checkElementHover({ x, y }: Point): HoverElement | undefined {
+    for (const element of this.elements) {
+      const x0 = element.pos.x - ICON_SIZE / 2;
+      const y0 = element.pos.y - ICON_SIZE / 2;
 
-        if (x > x0 && x < x0 + ICON_SIZE && y > y0 && y < y0 + ICON_SIZE) {
-          // before set check if already hovered
-          if (
-            !this.hoverElement ||
-            this.hoverElement.type !== ObjectType.ELEMENT ||
-            this.hoverElement.elId !== element.id ||
-            this.hoverElement.activePin
-          ) {
-            this.hoverElement = {
-              type: ObjectType.ELEMENT,
-              elId: element.id,
-              activePin: undefined,
-            };
-          }
-          hoverFound = true;
-          break;
-        }
+      if (x > x0 && x < x0 + ICON_SIZE && y > y0 && y < y0 + ICON_SIZE) {
+        return {
+          type: ObjectType.ELEMENT,
+          elId: element.id,
+        };
+      }
+    }
+    return undefined;
+  }
+
+  private checkConnectionHover({ x, y }: Point): HoverElement | undefined {
+    for (const connection of this.connections) {
+      const [p1, p2] = connection;
+
+      const point1 = this.getConnectionPinPosition(p1);
+      const point2 = this.getConnectionPinPosition(p2);
+
+      const shiftedPoint2 = subtract(point2, point1);
+      const shiftedMouse = subtract({ x, y }, point1);
+
+      const a = Math.atan2(shiftedPoint2.y, shiftedPoint2.x);
+
+      const rotatedPoint2 = rotate(shiftedPoint2, -a);
+      const rotatedMouse = rotate(shiftedMouse, -a);
+
+      const GAP = 10;
+
+      if (
+        rotatedMouse.x >= -GAP &&
+        rotatedMouse.x <= rotatedPoint2.x + GAP &&
+        rotatedMouse.y > -GAP &&
+        rotatedMouse.y < GAP
+      ) {
+        return {
+          type: ObjectType.CONNECTION,
+          connectionIndex: this.connections.indexOf(connection),
+        };
       }
     }
 
-    if (!hoverFound) {
-      for (const connection of this.connections) {
-        const [p1, p2] = connection;
+    return undefined;
+  }
 
-        const point1 = this.getConnectionPinPosition(p1);
-        const point2 = this.getConnectionPinPosition(p2);
-
-        const shiftedPoint2 = subtract(point2, point1);
-        const shiftedMouse = subtract({ x, y }, point1);
-
-        const a = Math.atan2(shiftedPoint2.y, shiftedPoint2.x);
-
-        const rotatedPoint2 = rotate(shiftedPoint2, -a);
-        const rotatedMouse = rotate(shiftedMouse, -a);
-
-        const GAP = 10;
-
-        if (
-          rotatedMouse.x >= -GAP &&
-          rotatedMouse.x <= rotatedPoint2.x + GAP &&
-          rotatedMouse.y > -GAP &&
-          rotatedMouse.y < GAP
-        ) {
-          const connectionIndex = this.connections.indexOf(connection);
-
-          // before set check if already hovered
-          if (
-            !this.hoverElement ||
-            this.hoverElement.type !== ObjectType.CONNECTION ||
-            this.hoverElement.connectionIndex !== connectionIndex
-          ) {
-            this.hoverElement = {
-              type: ObjectType.CONNECTION,
-              connectionIndex,
-            };
-          }
-          hoverConnectionFound = true;
-          break;
-        }
-      }
-    }
-
-    if (!hoverFound && !hoverConnectionFound) {
-      if (this.hoverElement) {
-        this.hoverElement = undefined;
-      }
+  private applyHoverElement(element: HoverElement): void {
+    // before set check if already hovered
+    if (!shallowequal(this.hoverElement, element)) {
+      this.hoverElement = element;
     }
   }
 
