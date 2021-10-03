@@ -44,23 +44,34 @@ const _Button = styled('button', {
   },
 });
 
+function parseGameId(
+  gameId: string,
+): { gameId: GameId; gameNumber: number } | undefined {
+  const match = gameId.match(/^[gs](\d+)$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    gameId: match[0] as GameId,
+    gameNumber: parseInt(match[1], 10),
+  };
+}
+
 type GameSave = {
   id: GameId;
   title: string;
 };
 
-function getCurrentGameId(allowedIds: GameSave[]): GameId | undefined {
+function getCurrentGameId(currentGames: GameSave[]): GameId | undefined {
   const hash = (window.location.hash ?? '').trim().replace(/^#/, '');
 
   if (hash) {
-    const match = hash.match(/^g(\d+)$/);
+    const game = parseGameId(hash);
 
-    if (match) {
-      const id = match[0] as GameId;
-
-      if (allowedIds.some((game) => game.id === id)) {
-        return id;
-      }
+    if (game && currentGames.some(({ id }) => id === game.gameId)) {
+      return game.gameId;
     }
   }
 
@@ -74,13 +85,13 @@ function getNextGameId(currentGames: GameSave[]): GameId {
     return `s1`;
   }
 
-  const match = lastGame.id.match(/^g(\d+)$/);
+  const game = parseGameId(lastGame.id);
 
-  if (!match) {
+  if (!game) {
     throw new Error();
   }
 
-  return `s${parseInt(match[1], 10) + 1}`;
+  return `s${game.gameNumber + 1}`;
 }
 
 export function App() {
