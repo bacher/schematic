@@ -1,4 +1,4 @@
-export type GameId = `g${number}`;
+export type GameId = `s${number}`;
 
 export enum ElementType {
   PNP = 'pnp',

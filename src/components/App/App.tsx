@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import { styled } from 'stitches';
+import { last } from 'lodash-es';
 
+import { styled } from 'stitches';
 import { GameId } from 'common/types';
+import { GameModel } from 'models/GameModel';
+import { insert } from 'utils/array';
 import { useOnChange } from 'hooks/useOnChange';
 import { useWindowEvent } from 'hooks/useWindowEvent';
 import { Simulator } from 'components/Simulator';
@@ -18,11 +21,35 @@ const _GameTitle = styled('h2', {
   fontVariant: '18|24',
 });
 
-const _RemoveButton = styled('button', {
-  marginLeft: 16,
+const _List = styled('ul', {
+  marginBottom: 10,
 });
 
-function getCurrentGameId(allowedIds: GameId[]): GameId | undefined {
+const _ListItem = styled('li', {
+  display: 'flex',
+  alignItems: 'center',
+  padding: '2px 0',
+});
+
+const _GameLinkWrapper = styled('p', {
+  minWidth: 140,
+  marginRight: 16,
+});
+
+const _GameLink = styled('a', {});
+
+const _Button = styled('button', {
+  '+ button': {
+    marginLeft: 5,
+  },
+});
+
+type GameSave = {
+  id: GameId;
+  title: string;
+};
+
+function getCurrentGameId(allowedIds: GameSave[]): GameId | undefined {
   const hash = (window.location.hash ?? '').trim().replace(/^#/, '');
 
   if (hash) {
@@ -31,7 +58,7 @@ function getCurrentGameId(allowedIds: GameId[]): GameId | undefined {
     if (match) {
       const id = match[0] as GameId;
 
-      if (allowedIds.includes(id)) {
+      if (allowedIds.some((game) => game.id === id)) {
         return id;
       }
     }
@@ -40,29 +67,39 @@ function getCurrentGameId(allowedIds: GameId[]): GameId | undefined {
   return undefined;
 }
 
-function getNextGameId(currentGames: GameId[]): GameId {
-  const lastId = currentGames[currentGames.length - 1];
+function getNextGameId(currentGames: GameSave[]): GameId {
+  const lastGame = last(currentGames);
 
-  if (!lastId) {
-    return `g1`;
+  if (!lastGame) {
+    return `s1`;
   }
 
-  const match = lastId.match(/^g(\d+)$/);
+  const match = lastGame.id.match(/^g(\d+)$/);
 
   if (!match) {
     throw new Error();
   }
 
-  return `g${parseInt(match[1], 10) + 1}`;
+  return `s${parseInt(match[1], 10) + 1}`;
 }
 
 export function App() {
-  const savedGames = useMemo<GameId[]>(() => {
+  const savedGames = useMemo<GameSave[]>(() => {
     const json = localStorage.getItem('sch_games');
     if (!json) {
       return [];
     }
-    return JSON.parse(json);
+
+    return JSON.parse(json).map((game: unknown) => {
+      if (typeof game === 'string') {
+        return {
+          id: game,
+          title: game,
+        };
+      }
+
+      return game;
+    });
   }, []);
   const [currentGames, setCurrentGames] = useState(savedGames);
 
@@ -90,37 +127,79 @@ export function App() {
     <_Wrapper>
       <_Title>Schematic</_Title>
       <_GameTitle>Current schemas:</_GameTitle>
-      <ul>
+      <_List>
         {currentGames.length ? (
-          currentGames.map((gameId) => (
-            <li key={gameId}>
-              <a href={`#${gameId}`}>{gameId}</a>{' '}
-              <_RemoveButton
+          currentGames.map(({ id: gameId, title }, index) => (
+            <_ListItem key={gameId}>
+              <_GameLinkWrapper>
+                <_GameLink href={`#${gameId}`}>{title}</_GameLink>
+              </_GameLinkWrapper>
+              <_Button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+
+                  // eslint-disable-next-line no-alert
+                  const title = window.prompt('Enter clone game name');
+
+                  if (!title || !title.trim()) {
+                    return;
+                  }
+
+                  const clonedGame = {
+                    id: getNextGameId(currentGames),
+                    title,
+                  };
+
+                  GameModel.cloneGame(gameId, clonedGame.id);
+
+                  setCurrentGames(insert(currentGames, clonedGame, index));
+                }}
+              >
+                clone
+              </_Button>
+              <_Button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
 
                   // eslint-disable-next-line no-alert
                   if (window.confirm('Are you sure?')) {
-                    setCurrentGames(currentGames.filter((id) => id !== gameId));
-                    localStorage.removeItem(`sch_game_${gameId}`);
+                    setCurrentGames(
+                      currentGames.filter((game) => game.id !== gameId),
+                    );
+                    GameModel.removeGame(gameId);
                   }
                 }}
               >
                 x
-              </_RemoveButton>
-            </li>
+              </_Button>
+            </_ListItem>
           ))
         ) : (
           <div>no saved schemas</div>
         )}
-      </ul>
+      </_List>
       <button
         type="button"
         onClick={(e) => {
           e.preventDefault();
           const newGameId = getNextGameId(currentGames);
-          setCurrentGames([...currentGames, newGameId]);
+
+          // eslint-disable-next-line no-alert
+          const title = window.prompt('Enter new game name');
+
+          if (!title || !title.trim()) {
+            return;
+          }
+
+          setCurrentGames([
+            ...currentGames,
+            {
+              id: newGameId,
+              title: title.trim(),
+            },
+          ]);
 
           window.setTimeout(() => {
             window.location.assign(`#${newGameId}`);

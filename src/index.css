@@ -29,6 +29,10 @@ ul {
   padding: 0;
 }
 
+a {
+  color: inherit;
+}
+
 button {
   overflow: hidden;
 }

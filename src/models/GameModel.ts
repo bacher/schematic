@@ -205,6 +205,17 @@ export class GameModel {
     return new GameModel(GameModel.getLoadedState(gameId));
   }
 
+  public static removeGame(gameId: GameId) {
+    localStorage.removeItem(getGameIdStorageKey(gameId));
+  }
+
+  public static cloneGame(gameId: GameId, toGameId: GameId): void {
+    const json = localStorage.getItem(getGameIdStorageKey(gameId));
+    if (json) {
+      localStorage.setItem(getGameIdStorageKey(toGameId), json);
+    }
+  }
+
   public underWatch = false;
   public needTriggerUpdate = false;
 

@@ -72,6 +72,10 @@ export function InputSignalsControl({ gameModel }: Props) {
     }),
   );
 
+  if (!inputSignals.length) {
+    return null;
+  }
+
   return (
     <_Wrapper>
       <_Title>Input signals:</_Title>
