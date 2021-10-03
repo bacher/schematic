@@ -9,7 +9,7 @@ import {
 import { debounce } from 'lodash-es';
 
 import { Coords, GameId } from 'common/types';
-import { MAX_FPS } from 'common/data';
+import { ANIMATION_TICK, MAX_FPS } from 'common/data';
 import { GameModel, useGameState } from 'models/GameModel';
 import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
@@ -51,6 +51,7 @@ export function Simulator({ gameId }: Props) {
   const densityFactor = useRefState({
     value: getCurrentDensityFactor(),
   });
+  const tickRef = useRef(0);
 
   const gameModel = useMemo(() => {
     if (GameModel.checkSavedGame(gameId)) {
@@ -59,11 +60,12 @@ export function Simulator({ gameId }: Props) {
     return GameModel.createEmptyModel(gameId);
   }, [gameId]);
 
-  const { cursor, showFps } = useGameState(
+  const { cursor, showFps, simulate } = useGameState(
     gameModel,
     ({ cursor, options }) => ({
       cursor,
       showFps: options.debugShowFps,
+      simulate: options.simulate,
     }),
   );
 
@@ -115,13 +117,16 @@ export function Simulator({ gameId }: Props) {
 
     const ctx = getCanvasContext(canvasRef.current);
 
-    fps.value += 1;
+    if (showFps) {
+      fps.value += 1;
+    }
 
     render(ctx, {
       gameState: gameModel.getState(),
       size,
       densityFactor: densityFactor.value,
       assets,
+      tick: tickRef.current,
     });
   });
 
@@ -134,6 +139,16 @@ export function Simulator({ gameId }: Props) {
       trailing: true,
     });
   }, [drawHandler]);
+
+  useActivePageInterval(
+    simulate
+      ? () => {
+          tickRef.current += 1;
+          draw();
+        }
+      : undefined,
+    ANIMATION_TICK,
+  );
 
   function updateSize() {
     const canvasWrapper = canvasWrapperRef.current;
@@ -156,7 +171,7 @@ export function Simulator({ gameId }: Props) {
     gameModel.setDrawHandler(draw);
 
     return () => {
-      gameModel.setDrawHandler(undefined);
+      gameModel.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -6,11 +6,11 @@ import {
   ElementType,
 } from 'common/types';
 
-type PinId = `${ElementId}:${number}`;
+export type PinId = `${ElementId}:${number}`;
 
 type Node = PinId[];
 
-enum NodePowerState {
+export enum NodePowerState {
   IMPEDANCE,
   GROUND,
   POWER,
@@ -22,7 +22,7 @@ export type NodeState = {
   pins: PinId[];
 };
 
-function getPinId(p: ConnectionPin): PinId {
+export function getPinId(p: ConnectionPin): PinId {
   return `${p.elId}:${p.pinIndex}`;
 }
 

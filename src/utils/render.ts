@@ -1,18 +1,20 @@
 import {
+  Assets,
   BoxSize,
   Element,
   ElementId,
   ElementType,
   ObjectType,
-  Assets,
 } from 'common/types';
 import { getLiteralForSignal } from 'common/common';
-import { elementsDescriptions } from 'common/data';
+import {
+  elementsDescriptions,
+  ICON_SIZE,
+  FOCUS_SIZE,
+  PIN_DOT_RADIUS,
+} from 'common/data';
 import { GameModelState } from 'models/GameModel';
-
-const ICON_SIZE = 48;
-const FOCUS_SIZE = ICON_SIZE + 4;
-const PIN_DOT_RADIUS = 5;
+import { getPinId, NodePowerState, PinId } from './simulation';
 
 export function render(
   ctx: CanvasRenderingContext2D,
@@ -21,11 +23,13 @@ export function render(
     size,
     densityFactor,
     assets,
+    tick,
   }: {
     gameState: GameModelState;
     size: BoxSize;
     densityFactor: number;
     assets: Assets;
+    tick: number;
   },
 ) {
   const {
@@ -36,6 +40,7 @@ export function render(
     hoverElement,
     wireElement,
     options,
+    nodesSimulation,
   } = gameState;
 
   function getElById(elId: ElementId): Element {
@@ -46,6 +51,16 @@ export function render(
     }
 
     return el;
+  }
+
+  const simulationPins = new Map<PinId, NodePowerState>();
+
+  if (nodesSimulation) {
+    for (const node of nodesSimulation) {
+      for (const pin of node.pins) {
+        simulationPins.set(pin, node.state);
+      }
+    }
   }
 
   ctx.save();
@@ -132,6 +147,8 @@ export function render(
     const el1 = getElById(p1.elId);
     const el2 = getElById(p2.elId);
 
+    const nodeState = simulationPins.get(getPinId(p1));
+
     const pin1 = elementsDescriptions[el1.type].pins[p1.pinIndex];
     const pin2 = elementsDescriptions[el2.type].pins[p2.pinIndex];
 
@@ -156,17 +173,40 @@ export function render(
       focusElement.type === ObjectType.CONNECTION &&
       focusElement.connectionIndex === index;
 
-    ctx.lineWidth = isHovered || isInFocus ? 3 : 1;
+    let lineWidth = 1;
 
-    if (isHovered && isInFocus) {
-      ctx.strokeStyle = '#8080ff';
+    if (isHovered || isInFocus) {
+      lineWidth = 3;
+    } else if (nodeState === NodePowerState.SHORT_CIRCUIT) {
+      lineWidth = 2;
+    }
+
+    let color = '#333';
+    let drawDash = false;
+
+    if (nodeState === NodePowerState.SHORT_CIRCUIT) {
+      color = '#f00';
+    } else if (nodeState === NodePowerState.POWER) {
+      color = '#ff9038';
+      drawDash = true;
+    } else if (nodeState === NodePowerState.GROUND) {
+      color = '#aaaaff';
+      drawDash = true;
+    } else if (isHovered && isInFocus) {
+      color = '#8080ff';
     } else if (isInFocus) {
-      ctx.strokeStyle = '#bfbfff';
-    } else {
-      ctx.strokeStyle = '#333';
+      color = '#bfbfff';
+    }
+
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+
+    if (drawDash && !isHovered) {
+      ctx.setLineDash(tick % 2 ? [6, 6] : [0, 6, 6, 0]);
     }
 
     ctx.stroke();
+
     ctx.restore();
 
     index += 1;
@@ -279,12 +319,6 @@ export function render(
       i += 1;
     }
   }
-
-  // TODO
-  // if (options.simulate && nodesState.state) {
-  // TODO: Draw nodes state
-  // nodesState.state
-  // }
 
   ctx.restore();
 }

@@ -5,6 +5,7 @@ export const FOCUS_SIZE = ICON_SIZE + 4;
 export const PIN_DOT_RADIUS = 5;
 export const MAX_FPS = 60;
 export const AUTO_SAVE_INTERVAL = 2000;
+export const ANIMATION_TICK = 500;
 
 export const elementsDescriptions: Record<ElementType, ElementDescription> = {
   [ElementType.PNP]: {

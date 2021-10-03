@@ -1,6 +1,5 @@
 import { pick, defaults, without, last, throttle } from 'lodash-es';
 import im from 'immer';
-import memoize from 'memoize-one';
 import shallowequal from 'shallowequal';
 
 import {
@@ -23,7 +22,7 @@ import {
   PIN_DOT_RADIUS,
 } from 'common/data';
 import { rotate, subtract } from 'utils/trigano';
-import { getNodesSimulationState } from 'utils/simulation';
+import { getNodesSimulationState, NodeState } from 'utils/simulation';
 import { useForceUpdate } from 'hooks/useForceUpdate';
 import { useHandler } from 'hooks/useHandler';
 
@@ -78,7 +77,7 @@ function getGameIdStorageKey(gameId: GameId): string {
   return `sch_game_${gameId}`;
 }
 
-export type GameModelState = {
+type CmpGameModelState = {
   elements: Element[];
   connections: Connection[];
   inputSignals: boolean[];
@@ -89,7 +88,11 @@ export type GameModelState = {
   wireElement: WireElement | undefined;
   movingElement: ElementPointer | undefined;
   panState: PanState;
+};
+
+export type GameModelState = CmpGameModelState & {
   cursor: Cursor | undefined;
+  nodesSimulation: NodeState[] | undefined;
 };
 
 function watch(
@@ -235,7 +238,12 @@ export class GameModel {
   private mousePos: Point | undefined;
   private mouseState: MouseState;
   private panState: PanState;
-  private lastStateSnapshot: GameModelState | undefined;
+  private lastStateSnapshot:
+    | {
+        cmpState: CmpGameModelState;
+        state: GameModelState;
+      }
+    | undefined;
 
   public stateListeners: {
     forceUpdate: () => void;
@@ -317,7 +325,7 @@ export class GameModel {
   });
 
   public getState(): GameModelState {
-    const state = {
+    const cmpState: CmpGameModelState = {
       elements: this.elements,
       connections: this.connections,
       inputSignals: this.inputSignals,
@@ -328,17 +336,23 @@ export class GameModel {
       wireElement: this.wireElement,
       movingElement: this.movingElement,
       panState: this.panState,
-      cursor: this.getCursor(),
     };
 
     if (
       !this.lastStateSnapshot ||
-      !shallowequal(state, this.lastStateSnapshot)
+      !shallowequal(cmpState, this.lastStateSnapshot.cmpState)
     ) {
-      this.lastStateSnapshot = state;
+      this.lastStateSnapshot = {
+        cmpState,
+        state: {
+          ...cmpState,
+          cursor: this.getCursor(),
+          nodesSimulation: this.getSimulation(),
+        },
+      };
     }
 
-    return this.lastStateSnapshot;
+    return this.lastStateSnapshot.state;
   }
 
   @watch
@@ -498,13 +512,7 @@ export class GameModel {
       isMouseDown: false,
     };
 
-    // TODO: Why focus resetting here?
-    if (
-      this.focusElement &&
-      this.focusElement.type === ObjectType.ELEMENT &&
-      !this.wireElement &&
-      !this.movingElement
-    ) {
+    if (this.focusElement && !this.wireElement && !this.movingElement) {
       this.focusElement = undefined;
     }
 
@@ -585,15 +593,12 @@ export class GameModel {
     }
 
     if (hoverElement) {
-      if (
-        hoverElement.type === ObjectType.CONNECTION ||
-        hoverElement.type === ObjectType.ELEMENT
-      ) {
-        return 'move';
-      }
-
-      if (hoverElement.type === ObjectType.PIN) {
-        return 'pointer';
+      switch (hoverElement.type) {
+        case ObjectType.PIN:
+        case ObjectType.CONNECTION:
+          return 'pointer';
+        case ObjectType.ELEMENT:
+          return 'move';
       }
 
       if (panState.isPan) {
@@ -911,14 +916,12 @@ export class GameModel {
     return !this.hoverElement && !this.wireElement && !this.panState.isPan;
   }
 
-  private getNodesSimulationStateMemoized = memoize(getNodesSimulationState);
-
   private getSimulation() {
     if (!this.options.simulate) {
       return undefined;
     }
 
-    return this.getNodesSimulationStateMemoized(
+    return getNodesSimulationState(
       this.elements,
       this.connections,
       this.inputSignals,
