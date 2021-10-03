@@ -78,13 +78,18 @@ export function getNodesSimulationState(
       if (node.state !== state) {
         node.state = state;
         hasChanges = true;
-      } else {
-        hasChanges = false;
       }
     }
 
+    let iterationNumber = 0;
+
     while (hasChanges) {
       hasChanges = false;
+      iterationNumber += 1;
+
+      if (iterationNumber > 100) {
+        throw new Error('Simulation in infinity loop');
+      }
 
       for (const node of nodes) {
         for (const pin of node.pins) {
@@ -147,7 +152,6 @@ export function getNodesSimulationState(
           }
         }
       }
-      break;
     }
   }
 
