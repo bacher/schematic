@@ -1,4 +1,4 @@
-import { pick, defaults, without, last, throttle } from 'lodash-es';
+import { defaults, last, pick, throttle, without } from 'lodash-es';
 import im from 'immer';
 import shallowequal from 'shallowequal';
 
@@ -630,7 +630,9 @@ export class GameModel {
       },
     ];
 
-    this.inputSignals = [...this.inputSignals, false];
+    if (type === ElementType.INPUT) {
+      this.inputSignals = [...this.inputSignals, false];
+    }
   }
 
   @watch
