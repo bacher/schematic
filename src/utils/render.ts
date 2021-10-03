@@ -9,8 +9,8 @@ import {
 import { getLiteralForSignal } from 'common/common';
 import {
   elementsDescriptions,
-  ICON_SIZE,
   FOCUS_SIZE,
+  ICON_SIZE,
   PIN_DOT_RADIUS,
 } from 'common/data';
 import { GameModelState } from 'models/GameModel';
@@ -302,20 +302,50 @@ export function render(
       );
       ctx.closePath();
 
-      if (isHovered || isWire) {
-        ctx.save();
-        ctx.fillStyle = isWire ? '#d66' : '#66d';
-        ctx.fill();
-        ctx.restore();
-      } else {
-        ctx.save();
-        ctx.fillStyle = '#fff';
-        ctx.fill();
+      const nodeState = simulationPins.get(
+        getPinId({ elId: element.id, pinIndex: i }),
+      );
+
+      let fillColor = '#fff';
+      let noBorder = false;
+
+      if (
+        [ElementType.DOT, ElementType.INPUT, ElementType.OUTPUT].includes(
+          element.type,
+        )
+      ) {
+        switch (nodeState) {
+          case NodePowerState.SHORT_CIRCUIT: {
+            fillColor = '#f00';
+            break;
+          }
+          case NodePowerState.POWER: {
+            fillColor = '#ffc59b';
+            break;
+          }
+          case NodePowerState.GROUND: {
+            fillColor = '#d4d4ff';
+            break;
+          }
+        }
+      }
+
+      if (!fillColor && (isHovered || isWire)) {
+        fillColor = isWire ? '#d66' : '#66d';
+        noBorder = true;
+      }
+
+      ctx.save();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      if (!noBorder) {
         ctx.strokeStyle = '#448';
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
       }
+
       i += 1;
     }
   }
