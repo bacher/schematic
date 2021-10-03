@@ -19,7 +19,6 @@ import { useAssets } from 'hooks/useAssets';
 import { getCanvasContext } from 'utils/canvas';
 import { render } from 'utils/render';
 import { useActivePageInterval } from 'hooks/useActivePageInterval';
-import { TruthTable } from 'components/TruthTable';
 import { SchemaErrors } from 'components/SchemaErrors';
 import { InputSignalsControl } from 'components/InputSignalsControl';
 import { Toolbar } from 'components/Toolbar';
@@ -241,7 +240,7 @@ export function Simulator({ gameId }: Props) {
       <InputSignalsControl gameModel={gameModel} />
       <_Info>
         <OptionsPanel gameModel={gameModel} />
-        <TruthTable gameModel={gameModel} />
+        {/* <TruthTable gameModel={gameModel} /> */}
         <SchemaErrors gameModel={gameModel} />
         <_Space />
         <DebugPanel gameModel={gameModel} />
