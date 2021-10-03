@@ -183,14 +183,20 @@ export function render(
 
     let color = '#333';
     let drawDash = false;
+    let animateDash = false;
 
     if (nodeState === NodePowerState.SHORT_CIRCUIT) {
       color = '#f00';
     } else if (nodeState === NodePowerState.POWER) {
       color = '#ff9038';
       drawDash = true;
+      animateDash = true;
     } else if (nodeState === NodePowerState.GROUND) {
       color = '#aaaaff';
+      drawDash = true;
+      animateDash = true;
+    } else if (nodeState === NodePowerState.IMPEDANCE) {
+      color = '#c7c7c7';
       drawDash = true;
     } else if (isHovered && isInFocus) {
       color = '#8080ff';
@@ -202,7 +208,11 @@ export function render(
     ctx.strokeStyle = color;
 
     if (drawDash && !isHovered) {
-      ctx.setLineDash(tick % 2 ? [6, 6] : [0, 6, 6, 0]);
+      if (animateDash) {
+        ctx.setLineDash(tick % 2 ? [6, 6] : [0, 6, 6, 0]);
+      } else {
+        ctx.setLineDash([4, 11]);
+      }
     }
 
     ctx.stroke();
