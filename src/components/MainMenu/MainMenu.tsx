@@ -1,34 +1,26 @@
 import { useEffect, useRef } from 'react';
-import { last } from 'lodash-es';
 
 import { styled } from 'stitches';
 import type { GameId, GameSaveDescriptor } from 'common/types';
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH } from 'common/data';
 import { GameModel, getGameIdPreviewStorageKey } from 'models/GameModel';
 import { insert } from 'utils/array';
-import { parseGameId } from 'utils/game';
+import { getNextGameId } from 'utils/game';
 import { useForceUpdate } from 'hooks/useForceUpdate';
 
 const NO_PREVIEW = 'NO_PREVIEW';
 
-function getNextGameId(currentGames: GameSaveDescriptor[]): GameId {
-  const lastGame = last(currentGames);
-
-  if (!lastGame) {
-    return `s1`;
-  }
-
-  const game = parseGameId(lastGame.id);
-
-  if (!game) {
-    throw new Error();
-  }
-
-  return `s${game.gameNumber + 1}`;
-}
-
 const _Wrapper = styled('div', {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'start',
+  height: '100%',
   padding: 16,
+  boxSizing: 'border-box',
+
+  '> *': {
+    flexShrink: 0,
+  },
 });
 
 const _Title = styled('h1', {
@@ -41,7 +33,11 @@ const _GameTitle = styled('h2', {
 });
 
 const _List = styled('ul', {
-  marginBottom: 10,
+  flexShrink: 1,
+  marginBottom: 15,
+  paddingRight: 10,
+  overflow: 'hidden',
+  overflowY: 'auto',
 });
 
 const _ListItem = styled('li', {
@@ -81,7 +77,7 @@ const _NoPreview = styled('div', {
 });
 
 const _GameLinkWrapper = styled('p', {
-  minWidth: 140,
+  minWidth: 200,
   marginRight: 16,
 });
 
@@ -92,6 +88,8 @@ const _Button = styled('button', {
     marginLeft: 5,
   },
 });
+
+const _NewGameButton = styled('button');
 
 type PreviewBlobs = Record<
   GameId,
@@ -227,7 +225,7 @@ export function MainMenu({ currentGames, setCurrentGames }: Props) {
           <div>no saved schemas</div>
         )}
       </_List>
-      <button
+      <_NewGameButton
         type="button"
         onClick={(e) => {
           e.preventDefault();
@@ -254,7 +252,7 @@ export function MainMenu({ currentGames, setCurrentGames }: Props) {
         }}
       >
         New schema
-      </button>
+      </_NewGameButton>
     </_Wrapper>
   );
 }

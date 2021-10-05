@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 
 import { GameId, GameSaveDescriptor } from 'common/types';
-import { parseGameId } from 'utils/game';
+import { getNextGameId, parseGameId } from 'utils/game';
 import { useOnChange } from 'hooks/useOnChange';
 import { useWindowEvent } from 'hooks/useWindowEvent';
 import { MainMenu } from 'components/MainMenu';
@@ -58,6 +58,24 @@ export function App() {
       setCurrentGameId(gameId);
     }
   });
+
+  useLayoutEffect(() => {
+    if (!currentGames.length && !currentGameId) {
+      const newGameId = getNextGameId(currentGames);
+
+      setCurrentGames([
+        {
+          id: newGameId,
+          title: 'Untitled schema',
+        },
+      ]);
+
+      window.setTimeout(() => {
+        window.location.assign(`#${newGameId}`);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (currentGameId) {
     return <Simulator key={currentGameId} gameId={currentGameId} />;
