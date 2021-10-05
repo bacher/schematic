@@ -184,6 +184,34 @@ export function MainMenu({ currentGames, setCurrentGames }: Props) {
                     e.preventDefault();
 
                     // eslint-disable-next-line no-alert
+                    const title = window.prompt('Enter new game name');
+
+                    if (!title || !title.trim()) {
+                      return;
+                    }
+
+                    setCurrentGames(
+                      currentGames.map((item, i) => {
+                        if (i === index) {
+                          return {
+                            ...item,
+                            title,
+                          };
+                        }
+
+                        return item;
+                      }),
+                    );
+                  }}
+                >
+                  rename
+                </_Button>
+                <_Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+
+                    // eslint-disable-next-line no-alert
                     const title = window.prompt('Enter clone game name');
 
                     if (!title || !title.trim()) {
