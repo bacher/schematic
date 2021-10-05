@@ -73,8 +73,12 @@ function dropIndex<T>(items: T[], dropIndex: number): T[] {
   return items.filter((value, index) => index !== dropIndex);
 }
 
-function getGameIdStorageKey(gameId: GameId): string {
+export function getGameIdStorageKey(gameId: GameId): string {
   return `sch_game_${gameId}`;
+}
+
+export function getGameIdPreviewStorageKey(gameId: GameId): string {
+  return `sch_game_preview_${gameId}`;
 }
 
 type CmpGameModelState = {
@@ -245,6 +249,8 @@ export class GameModel {
       }
     | undefined;
 
+  private getPreview: (() => string | undefined) | undefined;
+
   public stateListeners: {
     forceUpdate: () => void;
     selector: (state: GameModelState) => unknown;
@@ -300,10 +306,15 @@ export class GameModel {
     this.saveGameThrottled.flush();
     this.clearState();
     this.drawHandler = undefined;
+    this.getPreview = undefined;
   }
 
-  public setDrawHandler(drawHandler: (() => void) | undefined) {
+  public setDrawHandler(drawHandler: (() => void) | undefined): void {
     this.drawHandler = drawHandler;
+  }
+
+  public setPreviewHandler(handler: () => string | undefined): void {
+    this.getPreview = handler;
   }
 
   public saveGame(): void {
@@ -317,6 +328,17 @@ export class GameModel {
         options: this.options,
       }),
     );
+
+    try {
+      const preview = this.getPreview?.();
+
+      if (preview) {
+        localStorage.setItem(getGameIdPreviewStorageKey(this.gameId), preview);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
   }
 
   private saveGameThrottled = throttle(this.saveGame, AUTO_SAVE_INTERVAL, {

@@ -90,3 +90,8 @@ export type Assets = {
   x1: AssetSet;
   x2: AssetSet;
 };
+
+export type GameSaveDescriptor = {
+  id: GameId;
+  title: string;
+};

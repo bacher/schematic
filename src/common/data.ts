@@ -6,6 +6,9 @@ export const PIN_DOT_RADIUS = 5;
 export const MAX_FPS = 60;
 export const AUTO_SAVE_INTERVAL = 2000;
 export const ANIMATION_TICK = 500;
+export const PREVIEW_WIDTH = 150;
+export const PREVIEW_HEIGHT = 100;
+export const PREVIEW_ZOOM = 2;
 
 export const elementsDescriptions: Record<ElementType, ElementDescription> = {
   [ElementType.PNP]: {

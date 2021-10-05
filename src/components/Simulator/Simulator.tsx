@@ -9,7 +9,13 @@ import {
 import { debounce } from 'lodash-es';
 
 import { Coords, GameId } from 'common/types';
-import { ANIMATION_TICK, MAX_FPS } from 'common/data';
+import {
+  ANIMATION_TICK,
+  MAX_FPS,
+  PREVIEW_HEIGHT,
+  PREVIEW_WIDTH,
+  PREVIEW_ZOOM,
+} from 'common/data';
 import { GameModel, useGameState } from 'models/GameModel';
 import { useRefState } from 'hooks/useRefState';
 import { useForceUpdate } from 'hooks/useForceUpdate';
@@ -58,6 +64,82 @@ export function Simulator({ gameId }: Props) {
     }
     return GameModel.createEmptyModel(gameId);
   }, [gameId]);
+
+  gameModel.setPreviewHandler(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      // eslint-disable-next-line no-console
+      console.warn('No canvas for getting preview');
+      return undefined;
+    }
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const factor = densityFactor.value;
+
+    if (canvasWidth === 0 || canvasHeight === 0) {
+      return undefined;
+    }
+
+    const previewWidth = PREVIEW_WIDTH * factor;
+    const previewHeight = PREVIEW_HEIGHT * factor;
+
+    const previewCanvas = document.createElement('canvas');
+    previewCanvas.width = previewWidth;
+    previewCanvas.height = previewHeight;
+    const previewCtx = getCanvasContext(previewCanvas);
+    previewCtx.fillStyle = '#fff';
+    previewCtx.fillRect(0, 0, previewWidth, previewHeight);
+
+    const cropAspect = PREVIEW_WIDTH / PREVIEW_HEIGHT;
+    let cropWidth = PREVIEW_WIDTH * PREVIEW_ZOOM * factor;
+    let cropHeight = PREVIEW_HEIGHT * PREVIEW_ZOOM * factor;
+
+    if (cropWidth > canvasWidth) {
+      cropWidth = canvasWidth;
+      cropHeight = cropWidth / cropAspect;
+    }
+    if (cropHeight > canvasHeight) {
+      cropHeight = canvasHeight;
+      cropWidth = cropHeight * cropAspect;
+    }
+
+    // const minSize = Math.min(canvasWidth, canvasHeight);
+    // const cropSize = Math.min(minSize, 200 * factor);
+
+    // const cropCanvas = document.createElement('canvas');
+    // cropCanvas.width = cropSize;
+    // cropCanvas.height = cropSize;
+    // const cropCtx = getCanvasContext(cropCanvas);
+    // cropCtx.fillStyle = '#fff';
+    // cropCtx.fillRect(0, 0, cropSize, cropSize);
+    // cropCtx.
+
+    const sx = canvasWidth / 2 - cropWidth / 2;
+    const sy = canvasHeight / 2 - cropHeight / 2;
+
+    // const imageData = ctx.getImageData(
+    //   sx,
+    //   sy,
+    //   cropSize,
+    //   cropSize,
+    // );
+
+    previewCtx.drawImage(
+      canvas,
+      sx,
+      sy,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      previewWidth,
+      previewHeight,
+    );
+
+    return previewCanvas.toDataURL();
+  });
 
   const { cursor, showFps, simulate } = useGameState(
     gameModel,
@@ -163,7 +245,7 @@ export function Simulator({ gameId }: Props) {
     canvas.width = size.width * densityFactor.value;
     canvas.height = size.height * densityFactor.value;
 
-    draw();
+    drawHandler();
   }
 
   useEffect(() => {
